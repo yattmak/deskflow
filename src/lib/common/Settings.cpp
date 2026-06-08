@@ -213,6 +213,9 @@ QVariant Settings::defaultValue(const QString &key)
   if (key == Server::GridWidth)
     return kGridWidth;
 
+  if (key == Server::GridHeight)
+    return kGridHeight;
+
   return QVariant();
 }
 
