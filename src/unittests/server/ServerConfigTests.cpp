@@ -7,6 +7,7 @@
 
 #include "ServerConfigTests.h"
 
+#include "deskflow/KeyTypes.h"
 #include "server/Config.h"
 
 #include <sstream>
@@ -169,9 +170,9 @@ void ServerConfigTests::readAndWrite_sideModifierOptions()
   input << "section: screens\n"
         << "\tclient:\n"
         << "\t\tmetaLeft = alt\n"
-        << "\t\tmetaRight = super\n"
+        << "\t\tmetaRight = hangul\n"
         << "\t\tsuperLeft = ctrl\n"
-        << "\t\tsuperRight = meta\n"
+        << "\t\tsuperRight = haen\n"
         << "end\n";
 
   Config config(nullptr);
@@ -180,17 +181,17 @@ void ServerConfigTests::readAndWrite_sideModifierOptions()
   const auto *options = config.getOptions("client");
   QVERIFY(options != nullptr);
   QCOMPARE(options->at(kOptionModifierMapForMetaLeft), static_cast<OptionValue>(kKeyModifierIDAlt));
-  QCOMPARE(options->at(kOptionModifierMapForMetaRight), static_cast<OptionValue>(kKeyModifierIDSuper));
+  QCOMPARE(options->at(kOptionModifierMapForMetaRight), static_cast<OptionValue>(kKeyHangul));
   QCOMPARE(options->at(kOptionModifierMapForSuperLeft), static_cast<OptionValue>(kKeyModifierIDControl));
-  QCOMPARE(options->at(kOptionModifierMapForSuperRight), static_cast<OptionValue>(kKeyModifierIDMeta));
+  QCOMPARE(options->at(kOptionModifierMapForSuperRight), static_cast<OptionValue>(kKeyHangul));
 
   std::stringstream output;
   output << config;
   const auto text = QString::fromStdString(output.str());
   QVERIFY(text.contains("metaLeft = alt"));
-  QVERIFY(text.contains("metaRight = super"));
+  QVERIFY(text.contains("metaRight = hangul"));
   QVERIFY(text.contains("superLeft = ctrl"));
-  QVERIFY(text.contains("superRight = meta"));
+  QVERIFY(text.contains("superRight = hangul"));
 }
 
 QTEST_MAIN(ServerConfigTests)

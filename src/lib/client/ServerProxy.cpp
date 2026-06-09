@@ -450,6 +450,38 @@ static bool getModifierKeyInfo(KeyID id, KeyModifierID &modifierID, uint32_t &si
   }
 }
 
+static bool isModifierMapTarget(uint32_t target)
+{
+  return target < kKeyModifierIDLast;
+}
+
+static KeyID getModifierMapTargetKey(uint32_t target, uint32_t side)
+{
+  static const KeyID s_translationTable[kKeyModifierIDLast][2] = {
+      {kKeyNone, kKeyNone},     {kKeyShift_L, kKeyShift_R}, {kKeyControl_L, kKeyControl_R}, {kKeyAlt_L, kKeyAlt_R},
+      {kKeyMeta_L, kKeyMeta_R}, {kKeySuper_L, kKeySuper_R}, {kKeyAltGr, kKeyAltGr}
+  };
+
+  if (isModifierMapTarget(target)) {
+    return s_translationTable[target][side];
+  }
+
+  return static_cast<KeyID>(target);
+}
+
+static KeyModifierMask getModifierMapTargetMask(uint32_t target)
+{
+  static const KeyModifierMask s_masks[kKeyModifierIDLast] = {0x0000,          KeyModifierShift, KeyModifierControl,
+                                                              KeyModifierAlt,  KeyModifierMeta,  KeyModifierSuper,
+                                                              KeyModifierAltGr};
+
+  if (isModifierMapTarget(target)) {
+    return s_masks[target];
+  }
+
+  return 0;
+}
+
 void ServerProxy::setModifierKeyActive(KeyID id, bool active)
 {
   KeyModifierID modifierID = kKeyModifierIDNull;
@@ -461,15 +493,10 @@ void ServerProxy::setModifierKeyActive(KeyID id, bool active)
 
 KeyID ServerProxy::translateKey(KeyID id) const
 {
-  static const KeyID s_translationTable[kKeyModifierIDLast][2] = {
-      {kKeyNone, kKeyNone},     {kKeyShift_L, kKeyShift_R}, {kKeyControl_L, kKeyControl_R}, {kKeyAlt_L, kKeyAlt_R},
-      {kKeyMeta_L, kKeyMeta_R}, {kKeySuper_L, kKeySuper_R}, {kKeyAltGr, kKeyAltGr}
-  };
-
   KeyModifierID id2 = kKeyModifierIDNull;
   uint32_t side = 0;
   if (getModifierKeyInfo(id, id2, side)) {
-    return s_translationTable[m_modifierKeyTranslationTable[id2][side]][side];
+    return getModifierMapTargetKey(m_modifierKeyTranslationTable[id2][side], side);
   } else {
     return id;
   }
@@ -484,22 +511,22 @@ KeyModifierMask ServerProxy::translateModifierMask(KeyModifierMask mask, KeyID i
   KeyModifierMask newMask = mask & ~(KeyModifierShift | KeyModifierControl | KeyModifierAlt | KeyModifierMeta |
                                      KeyModifierSuper | KeyModifierAltGr);
   if ((mask & KeyModifierShift) != 0) {
-    newMask |= s_masks[m_modifierTranslationTable[kKeyModifierIDShift]];
+    newMask |= getModifierMapTargetMask(m_modifierTranslationTable[kKeyModifierIDShift]);
   }
   if ((mask & KeyModifierControl) != 0) {
-    newMask |= s_masks[m_modifierTranslationTable[kKeyModifierIDControl]];
+    newMask |= getModifierMapTargetMask(m_modifierTranslationTable[kKeyModifierIDControl]);
   }
   if ((mask & KeyModifierAlt) != 0) {
-    newMask |= s_masks[m_modifierTranslationTable[kKeyModifierIDAlt]];
+    newMask |= getModifierMapTargetMask(m_modifierTranslationTable[kKeyModifierIDAlt]);
   }
   if ((mask & KeyModifierAltGr) != 0) {
-    newMask |= s_masks[m_modifierTranslationTable[kKeyModifierIDAltGr]];
+    newMask |= getModifierMapTargetMask(m_modifierTranslationTable[kKeyModifierIDAltGr]);
   }
   if ((mask & KeyModifierMeta) != 0) {
-    newMask |= s_masks[m_modifierTranslationTable[kKeyModifierIDMeta]];
+    newMask |= getModifierMapTargetMask(m_modifierTranslationTable[kKeyModifierIDMeta]);
   }
   if ((mask & KeyModifierSuper) != 0) {
-    newMask |= s_masks[m_modifierTranslationTable[kKeyModifierIDSuper]];
+    newMask |= getModifierMapTargetMask(m_modifierTranslationTable[kKeyModifierIDSuper]);
   }
 
   KeyModifierID eventModifierID = kKeyModifierIDNull;
@@ -519,10 +546,10 @@ KeyModifierMask ServerProxy::translateModifierMask(KeyModifierMask mask, KeyID i
       continue;
     }
 
-    newMask &= ~s_masks[m_modifierTranslationTable[modifierID]];
+    newMask &= ~getModifierMapTargetMask(m_modifierTranslationTable[modifierID]);
     for (auto side = 0; side < 2; ++side) {
       if (activeSides[side]) {
-        newMask |= s_masks[m_modifierKeyTranslationTable[modifierID][side]];
+        newMask |= getModifierMapTargetMask(m_modifierKeyTranslationTable[modifierID][side]);
       }
     }
   }
@@ -834,13 +861,15 @@ void ServerProxy::setOptions()
       m_modifierKeyTranslationTable[kKeyModifierIDMeta][0] = options[i + 1];
       m_modifierKeyTranslationOverride[kKeyModifierIDMeta][0] = true;
       LOG_DEBUG1(
-          "modifier %d left mapped to %d", kKeyModifierIDMeta, m_modifierKeyTranslationTable[kKeyModifierIDMeta][0]
+          "modifier %d left mapped to 0x%08x", kKeyModifierIDMeta,
+          m_modifierKeyTranslationTable[kKeyModifierIDMeta][0]
       );
     } else if (options[i] == kOptionModifierMapForMetaRight) {
       m_modifierKeyTranslationTable[kKeyModifierIDMeta][1] = options[i + 1];
       m_modifierKeyTranslationOverride[kKeyModifierIDMeta][1] = true;
       LOG_DEBUG1(
-          "modifier %d right mapped to %d", kKeyModifierIDMeta, m_modifierKeyTranslationTable[kKeyModifierIDMeta][1]
+          "modifier %d right mapped to 0x%08x", kKeyModifierIDMeta,
+          m_modifierKeyTranslationTable[kKeyModifierIDMeta][1]
       );
     } else if (options[i] == kOptionModifierMapForSuper) {
       id = kKeyModifierIDSuper;
@@ -848,14 +877,14 @@ void ServerProxy::setOptions()
       m_modifierKeyTranslationTable[kKeyModifierIDSuper][0] = options[i + 1];
       m_modifierKeyTranslationOverride[kKeyModifierIDSuper][0] = true;
       LOG_DEBUG1(
-          "modifier %d left mapped to %d", kKeyModifierIDSuper,
+          "modifier %d left mapped to 0x%08x", kKeyModifierIDSuper,
           m_modifierKeyTranslationTable[kKeyModifierIDSuper][0]
       );
     } else if (options[i] == kOptionModifierMapForSuperRight) {
       m_modifierKeyTranslationTable[kKeyModifierIDSuper][1] = options[i + 1];
       m_modifierKeyTranslationOverride[kKeyModifierIDSuper][1] = true;
       LOG_DEBUG1(
-          "modifier %d right mapped to %d", kKeyModifierIDSuper,
+          "modifier %d right mapped to 0x%08x", kKeyModifierIDSuper,
           m_modifierKeyTranslationTable[kKeyModifierIDSuper][1]
       );
     } else if (options[i] == kOptionHeartbeat) {
@@ -870,7 +899,7 @@ void ServerProxy::setOptions()
           m_modifierKeyTranslationTable[id][side] = options[i + 1];
         }
       }
-      LOG_DEBUG1("modifier %d mapped to %d", id, m_modifierTranslationTable[id]);
+      LOG_DEBUG1("modifier %d mapped to 0x%08x", id, m_modifierTranslationTable[id]);
     }
   }
 }

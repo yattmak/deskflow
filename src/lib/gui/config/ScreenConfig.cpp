@@ -7,7 +7,7 @@
 
 #include "ScreenConfig.h"
 
-const char *ScreenConfig::m_ModifierNames[] = {"shift", "ctrl", "alt", "meta", "super", "none"};
+const char *ScreenConfig::m_ModifierNames[] = {"shift", "ctrl", "alt", "meta", "super", "none", "hangul"};
 
 const char *ScreenConfig::m_ModifierConfigNames[] = {
     "shift", "ctrl", "alt", "meta", "super", "none", "metaLeft", "metaRight", "superLeft", "superRight"

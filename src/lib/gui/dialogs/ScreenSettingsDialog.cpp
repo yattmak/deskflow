@@ -33,6 +33,10 @@ ScreenSettingsDialog::ScreenSettingsDialog(QWidget *parent, Screen *screen, cons
   ui->setupUi(this);
   ui->buttonBox->button(QDialogButtonBox::Cancel)->setFocus();
 
+  for (auto *combo : {ui->comboMeta, ui->comboShift, ui->comboCtrl, ui->comboSuper, ui->comboAlt}) {
+    combo->addItem(tr("Hangul"));
+  }
+
   ui->lineNameEdit->setText(m_screen->name());
 
   const auto valNameError = new validators::ValidationError(this, ui->lblNameError);

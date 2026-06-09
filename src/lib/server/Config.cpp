@@ -1314,6 +1314,12 @@ std::string Config::getOptionValue(OptionID id, OptionValue value)
       return "super";
 
     default:
+      if (value == static_cast<OptionValue>(kKeyHangul)) {
+        return "hangul";
+      }
+      if (value != static_cast<OptionValue>(kKeyModifierIDNull)) {
+        return deskflow::KeyMap::formatKey(static_cast<KeyID>(value), 0);
+      }
       return "none";
     }
   }
@@ -1788,6 +1794,19 @@ OptionValue ConfigReadContext::parseModifierKey(const std::string &arg) const
   }
   if (CaselessCmp::equal(arg, "none")) {
     return static_cast<OptionValue>(kKeyModifierIDNull);
+  }
+  if (CaselessCmp::equal(arg, "hangul") || CaselessCmp::equal(arg, "haen") ||
+      CaselessCmp::equal(arg, "kc_haen")) {
+    return static_cast<OptionValue>(kKeyHangul);
+  }
+  for (const KeyNameMapEntry *i = kKeyNameMap; i->m_name != nullptr; ++i) {
+    if (CaselessCmp::equal(arg, i->m_name)) {
+      return static_cast<OptionValue>(i->m_id);
+    }
+  }
+  KeyID key = kKeyNone;
+  if (deskflow::KeyMap::parseKey(arg, key) && key != kKeyNone) {
+    return static_cast<OptionValue>(key);
   }
   throw ServerConfigReadException(*this, "invalid argument \"%{1}\"", arg);
 }

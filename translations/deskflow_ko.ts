@@ -910,6 +910,10 @@ Valid names:
         <translation>삭제(&amp;R)</translation>
     </message>
     <message>
+        <source>Hangul</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Meta &amp;Left</source>
         <translation type="unfinished"></translation>
     </message>

@@ -911,6 +911,10 @@ Nomi validi:
         <translation>&amp;Rimuovi</translation>
     </message>
     <message>
+        <source>Hangul</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Meta &amp;Left</source>
         <translation type="unfinished"></translation>
     </message>

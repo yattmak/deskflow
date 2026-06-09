@@ -119,8 +119,8 @@ private:
 
   bool m_ignoreMouse = false;
 
-  KeyModifierID m_modifierTranslationTable[kKeyModifierIDLast];
-  KeyModifierID m_modifierKeyTranslationTable[kKeyModifierIDLast][2];
+  uint32_t m_modifierTranslationTable[kKeyModifierIDLast];
+  uint32_t m_modifierKeyTranslationTable[kKeyModifierIDLast][2];
   bool m_modifierKeyTranslationOverride[kKeyModifierIDLast][2];
   bool m_activeModifierKeySides[kKeyModifierIDLast][2];
 
