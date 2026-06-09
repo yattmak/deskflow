@@ -47,7 +47,8 @@ target_link_libraries(
   common
   Qt6::Core
   Qt6::Widgets
-  Qt6::Network)
+  Qt6::Network
+  Qt6::Svg)
 
 install(
   TARGETS ${target}
