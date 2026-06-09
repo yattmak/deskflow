@@ -26,6 +26,10 @@ public:
     Meta,
     Super,
     None,
+    MetaLeft,
+    MetaRight,
+    SuperLeft,
+    SuperRight,
     NumModifiers
   };
   enum class SwitchCorner : int8_t
@@ -90,6 +94,14 @@ public:
   {
     return m_ModifierNames[idx];
   }
+  static const char *modifierConfigName(int idx)
+  {
+    return m_ModifierConfigNames[idx];
+  }
+  static int defaultModifier(int idx)
+  {
+    return m_DefaultModifiers[idx];
+  }
   static const char *fixName(int idx)
   {
     return m_FixNames[idx];
@@ -101,6 +113,8 @@ public:
 
 private:
   static const char *m_ModifierNames[];
+  static const char *m_ModifierConfigNames[];
+  static const int m_DefaultModifiers[];
   static const char *m_FixNames[];
   static const char *m_SwitchCornerNames[];
 };

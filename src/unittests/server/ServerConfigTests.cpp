@@ -9,6 +9,8 @@
 
 #include "server/Config.h"
 
+#include <sstream>
+
 class OnlySystemFilter : public InputFilter::Condition
 {
 public:
@@ -159,6 +161,36 @@ void ServerConfigTests::equalityCheck_diff_neighbours3()
   QVERIFY(b.addScreen("screenC"));
   QVERIFY(b.connect("screenA", Direction::Bottom, 0.0f, 0.5f, "screenC", 0.5f, 1.0f));
   QVERIFY(a != b);
+}
+
+void ServerConfigTests::readAndWrite_sideModifierOptions()
+{
+  std::stringstream input;
+  input << "section: screens\n"
+        << "\tclient:\n"
+        << "\t\tmetaLeft = alt\n"
+        << "\t\tmetaRight = super\n"
+        << "\t\tsuperLeft = ctrl\n"
+        << "\t\tsuperRight = meta\n"
+        << "end\n";
+
+  Config config(nullptr);
+  input >> config;
+
+  const auto *options = config.getOptions("client");
+  QVERIFY(options != nullptr);
+  QCOMPARE(options->at(kOptionModifierMapForMetaLeft), static_cast<OptionValue>(kKeyModifierIDAlt));
+  QCOMPARE(options->at(kOptionModifierMapForMetaRight), static_cast<OptionValue>(kKeyModifierIDSuper));
+  QCOMPARE(options->at(kOptionModifierMapForSuperLeft), static_cast<OptionValue>(kKeyModifierIDControl));
+  QCOMPARE(options->at(kOptionModifierMapForSuperRight), static_cast<OptionValue>(kKeyModifierIDMeta));
+
+  std::stringstream output;
+  output << config;
+  const auto text = QString::fromStdString(output.str());
+  QVERIFY(text.contains("metaLeft = alt"));
+  QVERIFY(text.contains("metaRight = super"));
+  QVERIFY(text.contains("superLeft = ctrl"));
+  QVERIFY(text.contains("superRight = meta"));
 }
 
 QTEST_MAIN(ServerConfigTests)

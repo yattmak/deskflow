@@ -910,6 +910,22 @@ Valid names:
         <translation>삭제(&amp;R)</translation>
     </message>
     <message>
+        <source>Meta &amp;Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Meta &amp;Right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Super &amp;Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Super &amp;Right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Screen name is empty</source>
         <translation>컴퓨터 이름이 비어 있습니다</translation>
     </message>

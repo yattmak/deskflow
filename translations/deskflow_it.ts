@@ -911,6 +911,22 @@ Nomi validi:
         <translation>&amp;Rimuovi</translation>
     </message>
     <message>
+        <source>Meta &amp;Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Meta &amp;Right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Super &amp;Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Super &amp;Right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Screen name is empty</source>
         <translation>Il nome dello schermo è vuoto</translation>
     </message>

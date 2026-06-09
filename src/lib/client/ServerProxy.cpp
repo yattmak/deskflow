@@ -34,9 +34,7 @@ ServerProxy::ServerProxy(Client *client, deskflow::IStream *stream, IEventQueue 
   assert(m_client != nullptr);
   assert(m_stream != nullptr);
 
-  // initialize modifier translation table
-  for (KeyModifierID id = 0; id < kKeyModifierIDLast; ++id)
-    m_modifierTranslationTable[id] = id;
+  resetModifierTranslationTables();
 
   // handle data on stream
   m_events->addHandler(EventTypes::StreamInputReady, m_stream->getEventTarget(), [this](const auto &) {
@@ -73,6 +71,18 @@ void ServerProxy::setKeepAliveRate(double rate)
 {
   m_keepAliveAlarm = rate * kKeepAlivesUntilDeath;
   resetKeepAliveAlarm();
+}
+
+void ServerProxy::resetModifierTranslationTables()
+{
+  for (KeyModifierID id = 0; id < kKeyModifierIDLast; ++id) {
+    m_modifierTranslationTable[id] = id;
+    for (auto side = 0; side < 2; ++side) {
+      m_modifierKeyTranslationTable[id][side] = id;
+      m_modifierKeyTranslationOverride[id][side] = false;
+      m_activeModifierKeySides[id][side] = false;
+    }
+  }
 }
 
 void ServerProxy::handleData()
@@ -377,6 +387,78 @@ void ServerProxy::sendInfo(const ClientInfo &info)
   ProtocolUtil::writef(m_stream, kMsgDInfo, info.m_x, info.m_y, info.m_w, info.m_h, 0, info.m_mx, info.m_my);
 }
 
+static bool getModifierKeyInfo(KeyID id, KeyModifierID &modifierID, uint32_t &side)
+{
+  switch (id) {
+  case kKeyShift_L:
+    modifierID = kKeyModifierIDShift;
+    side = 0;
+    return true;
+
+  case kKeyShift_R:
+    modifierID = kKeyModifierIDShift;
+    side = 1;
+    return true;
+
+  case kKeyControl_L:
+    modifierID = kKeyModifierIDControl;
+    side = 0;
+    return true;
+
+  case kKeyControl_R:
+    modifierID = kKeyModifierIDControl;
+    side = 1;
+    return true;
+
+  case kKeyAlt_L:
+    modifierID = kKeyModifierIDAlt;
+    side = 0;
+    return true;
+
+  case kKeyAlt_R:
+    modifierID = kKeyModifierIDAlt;
+    side = 1;
+    return true;
+
+  case kKeyAltGr:
+    modifierID = kKeyModifierIDAltGr;
+    side = 1; // there is only one alt gr key on the right side
+    return true;
+
+  case kKeyMeta_L:
+    modifierID = kKeyModifierIDMeta;
+    side = 0;
+    return true;
+
+  case kKeyMeta_R:
+    modifierID = kKeyModifierIDMeta;
+    side = 1;
+    return true;
+
+  case kKeySuper_L:
+    modifierID = kKeyModifierIDSuper;
+    side = 0;
+    return true;
+
+  case kKeySuper_R:
+    modifierID = kKeyModifierIDSuper;
+    side = 1;
+    return true;
+
+  default:
+    return false;
+  }
+}
+
+void ServerProxy::setModifierKeyActive(KeyID id, bool active)
+{
+  KeyModifierID modifierID = kKeyModifierIDNull;
+  uint32_t side = 0;
+  if (getModifierKeyInfo(id, modifierID, side)) {
+    m_activeModifierKeySides[modifierID][side] = active;
+  }
+}
+
 KeyID ServerProxy::translateKey(KeyID id) const
 {
   static const KeyID s_translationTable[kKeyModifierIDLast][2] = {
@@ -386,74 +468,14 @@ KeyID ServerProxy::translateKey(KeyID id) const
 
   KeyModifierID id2 = kKeyModifierIDNull;
   uint32_t side = 0;
-  switch (id) {
-  case kKeyShift_L:
-    id2 = kKeyModifierIDShift;
-    side = 0;
-    break;
-
-  case kKeyShift_R:
-    id2 = kKeyModifierIDShift;
-    side = 1;
-    break;
-
-  case kKeyControl_L:
-    id2 = kKeyModifierIDControl;
-    side = 0;
-    break;
-
-  case kKeyControl_R:
-    id2 = kKeyModifierIDControl;
-    side = 1;
-    break;
-
-  case kKeyAlt_L:
-    id2 = kKeyModifierIDAlt;
-    side = 0;
-    break;
-
-  case kKeyAlt_R:
-    id2 = kKeyModifierIDAlt;
-    side = 1;
-    break;
-
-  case kKeyAltGr:
-    id2 = kKeyModifierIDAltGr;
-    side = 1; // there is only one alt gr key on the right side
-    break;
-
-  case kKeyMeta_L:
-    id2 = kKeyModifierIDMeta;
-    side = 0;
-    break;
-
-  case kKeyMeta_R:
-    id2 = kKeyModifierIDMeta;
-    side = 1;
-    break;
-
-  case kKeySuper_L:
-    id2 = kKeyModifierIDSuper;
-    side = 0;
-    break;
-
-  case kKeySuper_R:
-    id2 = kKeyModifierIDSuper;
-    side = 1;
-    break;
-
-  default:
-    break;
-  }
-
-  if (id2 != kKeyModifierIDNull) {
-    return s_translationTable[m_modifierTranslationTable[id2]][side];
+  if (getModifierKeyInfo(id, id2, side)) {
+    return s_translationTable[m_modifierKeyTranslationTable[id2][side]][side];
   } else {
     return id;
   }
 }
 
-KeyModifierMask ServerProxy::translateModifierMask(KeyModifierMask mask) const
+KeyModifierMask ServerProxy::translateModifierMask(KeyModifierMask mask, KeyID id, bool eventModifierActive) const
 {
   static const KeyModifierMask s_masks[kKeyModifierIDLast] = {0x0000,          KeyModifierShift, KeyModifierControl,
                                                               KeyModifierAlt,  KeyModifierMeta,  KeyModifierSuper,
@@ -478,6 +500,31 @@ KeyModifierMask ServerProxy::translateModifierMask(KeyModifierMask mask) const
   }
   if ((mask & KeyModifierSuper) != 0) {
     newMask |= s_masks[m_modifierTranslationTable[kKeyModifierIDSuper]];
+  }
+
+  KeyModifierID eventModifierID = kKeyModifierIDNull;
+  uint32_t eventSide = 0;
+  const auto eventIsModifier = getModifierKeyInfo(id, eventModifierID, eventSide);
+  for (KeyModifierID modifierID = kKeyModifierIDShift; modifierID < kKeyModifierIDLast; ++modifierID) {
+    if ((mask & s_masks[modifierID]) == 0) {
+      continue;
+    }
+
+    bool activeSides[2] = {m_activeModifierKeySides[modifierID][0], m_activeModifierKeySides[modifierID][1]};
+    if (eventIsModifier && eventModifierID == modifierID && eventModifierActive) {
+      activeSides[eventSide] = true;
+    }
+
+    if (!activeSides[0] && !activeSides[1]) {
+      continue;
+    }
+
+    newMask &= ~s_masks[m_modifierTranslationTable[modifierID]];
+    for (auto side = 0; side < 2; ++side) {
+      if (activeSides[side]) {
+        newMask |= s_masks[m_modifierKeyTranslationTable[modifierID][side]];
+      }
+    }
   }
   return newMask;
 }
@@ -565,8 +612,10 @@ void ServerProxy::keyDown(uint16_t id, uint16_t mask, uint16_t button, const std
   setActiveServerLanguage(lang);
 
   // translate
-  KeyID id2 = translateKey(static_cast<KeyID>(id));
-  KeyModifierMask mask2 = translateModifierMask(static_cast<KeyModifierMask>(mask));
+  const auto keyID = static_cast<KeyID>(id);
+  setModifierKeyActive(keyID, true);
+  KeyID id2 = translateKey(keyID);
+  KeyModifierMask mask2 = translateModifierMask(static_cast<KeyModifierMask>(mask), keyID, true);
   if (id2 != static_cast<KeyID>(id) || mask2 != static_cast<KeyModifierMask>(mask))
     LOG_DEBUG1("key down translated to id=0x%08x, mask=0x%04x", id2, mask2);
 
@@ -593,8 +642,9 @@ void ServerProxy::keyRepeat()
   );
 
   // translate
-  KeyID id2 = translateKey(static_cast<KeyID>(id));
-  KeyModifierMask mask2 = translateModifierMask(static_cast<KeyModifierMask>(mask));
+  const auto keyID = static_cast<KeyID>(id);
+  KeyID id2 = translateKey(keyID);
+  KeyModifierMask mask2 = translateModifierMask(static_cast<KeyModifierMask>(mask), keyID, true);
   if (id2 != static_cast<KeyID>(id) || mask2 != static_cast<KeyModifierMask>(mask))
     LOG_DEBUG1("key repeat translated to id=0x%08x, mask=0x%04x", id2, mask2);
 
@@ -615,8 +665,10 @@ void ServerProxy::keyUp()
   LOG_DEBUG1("recv key up id=0x%08x, mask=0x%04x, button=0x%04x", id, mask, button);
 
   // translate
-  KeyID id2 = translateKey(static_cast<KeyID>(id));
-  KeyModifierMask mask2 = translateModifierMask(static_cast<KeyModifierMask>(mask));
+  const auto keyID = static_cast<KeyID>(id);
+  setModifierKeyActive(keyID, false);
+  KeyID id2 = translateKey(keyID);
+  KeyModifierMask mask2 = translateModifierMask(static_cast<KeyModifierMask>(mask), keyID, false);
   if (id2 != static_cast<KeyID>(id) || mask2 != static_cast<KeyModifierMask>(mask))
     LOG_DEBUG1("key up translated to id=0x%08x, mask=0x%04x", id2, mask2);
 
@@ -752,10 +804,7 @@ void ServerProxy::resetOptions()
   // reset keep alive
   setKeepAliveRate(kKeepAliveRate);
 
-  // reset modifier translation table
-  for (KeyModifierID id = 0; id < kKeyModifierIDLast; ++id) {
-    m_modifierTranslationTable[id] = id;
-  }
+  resetModifierTranslationTables();
 }
 
 void ServerProxy::setOptions()
@@ -781,8 +830,34 @@ void ServerProxy::setOptions()
       id = kKeyModifierIDAltGr;
     } else if (options[i] == kOptionModifierMapForMeta) {
       id = kKeyModifierIDMeta;
+    } else if (options[i] == kOptionModifierMapForMetaLeft) {
+      m_modifierKeyTranslationTable[kKeyModifierIDMeta][0] = options[i + 1];
+      m_modifierKeyTranslationOverride[kKeyModifierIDMeta][0] = true;
+      LOG_DEBUG1(
+          "modifier %d left mapped to %d", kKeyModifierIDMeta, m_modifierKeyTranslationTable[kKeyModifierIDMeta][0]
+      );
+    } else if (options[i] == kOptionModifierMapForMetaRight) {
+      m_modifierKeyTranslationTable[kKeyModifierIDMeta][1] = options[i + 1];
+      m_modifierKeyTranslationOverride[kKeyModifierIDMeta][1] = true;
+      LOG_DEBUG1(
+          "modifier %d right mapped to %d", kKeyModifierIDMeta, m_modifierKeyTranslationTable[kKeyModifierIDMeta][1]
+      );
     } else if (options[i] == kOptionModifierMapForSuper) {
       id = kKeyModifierIDSuper;
+    } else if (options[i] == kOptionModifierMapForSuperLeft) {
+      m_modifierKeyTranslationTable[kKeyModifierIDSuper][0] = options[i + 1];
+      m_modifierKeyTranslationOverride[kKeyModifierIDSuper][0] = true;
+      LOG_DEBUG1(
+          "modifier %d left mapped to %d", kKeyModifierIDSuper,
+          m_modifierKeyTranslationTable[kKeyModifierIDSuper][0]
+      );
+    } else if (options[i] == kOptionModifierMapForSuperRight) {
+      m_modifierKeyTranslationTable[kKeyModifierIDSuper][1] = options[i + 1];
+      m_modifierKeyTranslationOverride[kKeyModifierIDSuper][1] = true;
+      LOG_DEBUG1(
+          "modifier %d right mapped to %d", kKeyModifierIDSuper,
+          m_modifierKeyTranslationTable[kKeyModifierIDSuper][1]
+      );
     } else if (options[i] == kOptionHeartbeat) {
       // update keep alive
       setKeepAliveRate(1.0e-3 * static_cast<double>(options[i + 1]));
@@ -790,6 +865,11 @@ void ServerProxy::setOptions()
 
     if (id != kKeyModifierIDNull) {
       m_modifierTranslationTable[id] = options[i + 1];
+      for (auto side = 0; side < 2; ++side) {
+        if (!m_modifierKeyTranslationOverride[id][side]) {
+          m_modifierKeyTranslationTable[id][side] = options[i + 1];
+        }
+      }
       LOG_DEBUG1("modifier %d mapped to %d", id, m_modifierTranslationTable[id]);
     }
   }

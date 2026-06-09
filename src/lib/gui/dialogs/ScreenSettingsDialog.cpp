@@ -13,6 +13,9 @@
 #include "validators/ScreenNameValidator.h"
 #include "validators/ValidationError.h"
 
+#include <QComboBox>
+#include <QFormLayout>
+#include <QLabel>
 #include <QMessageBox>
 
 using enum ScreenConfig::Modifier;
@@ -43,11 +46,44 @@ ScreenSettingsDialog::ScreenSettingsDialog(QWidget *parent, Screen *screen, cons
   for (int i = 0; i < m_screen->aliases().count(); i++)
     new QListWidgetItem(m_screen->aliases()[i], ui->listAliases);
 
+  ui->label_5->setText(tr("Meta &Left"));
+  ui->label_5->setMaximumWidth(QWIDGETSIZE_MAX);
+  auto *labelMetaRight = new QLabel(tr("Meta &Right"), this);
+  m_comboMetaRight = new QComboBox(this);
+  m_comboMetaRight->setObjectName(QStringLiteral("comboMetaRight"));
+  for (int i = 0; i < ui->comboMeta->count(); ++i)
+    m_comboMetaRight->addItem(ui->comboMeta->itemText(i), ui->comboMeta->itemData(i));
+  labelMetaRight->setBuddy(m_comboMetaRight);
+  ui->formLayout_2->insertRow(1, labelMetaRight, m_comboMetaRight);
+  setTabOrder(ui->comboMeta, m_comboMetaRight);
+  setTabOrder(m_comboMetaRight, ui->comboShift);
+
+  ui->label_6->setText(tr("Super &Left"));
+  auto *labelSuperRight = new QLabel(tr("Super &Right"), this);
+  m_comboSuperRight = new QComboBox(this);
+  m_comboSuperRight->setObjectName(QStringLiteral("comboSuperRight"));
+  for (int i = 0; i < ui->comboSuper->count(); ++i)
+    m_comboSuperRight->addItem(ui->comboSuper->itemText(i), ui->comboSuper->itemData(i));
+  labelSuperRight->setBuddy(m_comboSuperRight);
+  int superRow = -1;
+  QFormLayout::ItemRole superRole;
+  ui->formLayout_2->getWidgetPosition(ui->comboSuper, &superRow, &superRole);
+  if (superRow >= 0) {
+    ui->formLayout_2->insertRow(superRow + 1, labelSuperRight, m_comboSuperRight);
+  } else {
+    ui->formLayout_2->addRow(labelSuperRight, m_comboSuperRight);
+  }
+  setTabOrder(ui->comboCtrl, ui->comboSuper);
+  setTabOrder(ui->comboSuper, m_comboSuperRight);
+  setTabOrder(m_comboSuperRight, ui->comboAlt);
+
   ui->comboShift->setCurrentIndex(m_screen->modifier(static_cast<int>(Shift)));
   ui->comboCtrl->setCurrentIndex(m_screen->modifier(static_cast<int>(Ctrl)));
   ui->comboAlt->setCurrentIndex(m_screen->modifier(static_cast<int>(Alt)));
-  ui->comboMeta->setCurrentIndex(m_screen->modifier(static_cast<int>(Meta)));
-  ui->comboSuper->setCurrentIndex(m_screen->modifier(static_cast<int>(Super)));
+  ui->comboMeta->setCurrentIndex(m_screen->modifier(static_cast<int>(MetaLeft)));
+  m_comboMetaRight->setCurrentIndex(m_screen->modifier(static_cast<int>(MetaRight)));
+  ui->comboSuper->setCurrentIndex(m_screen->modifier(static_cast<int>(SuperLeft)));
+  m_comboSuperRight->setCurrentIndex(m_screen->modifier(static_cast<int>(SuperRight)));
 
   ui->chkDeadTopLeft->setChecked(m_screen->switchCorner(static_cast<int>(TopLeft)));
   ui->chkDeadTopRight->setChecked(m_screen->switchCorner(static_cast<int>(TopRight)));
@@ -100,8 +136,10 @@ void ScreenSettingsDialog::accept()
   m_screen->setModifier(Shift, ui->comboShift->currentIndex());
   m_screen->setModifier(Ctrl, ui->comboCtrl->currentIndex());
   m_screen->setModifier(Alt, ui->comboAlt->currentIndex());
-  m_screen->setModifier(Meta, ui->comboMeta->currentIndex());
-  m_screen->setModifier(Super, ui->comboSuper->currentIndex());
+  m_screen->setModifier(MetaLeft, ui->comboMeta->currentIndex());
+  m_screen->setModifier(MetaRight, m_comboMetaRight->currentIndex());
+  m_screen->setModifier(SuperLeft, ui->comboSuper->currentIndex());
+  m_screen->setModifier(SuperRight, m_comboSuperRight->currentIndex());
 
   m_screen->setSwitchCorner(TopLeft, ui->chkDeadTopLeft->isChecked());
   m_screen->setSwitchCorner(TopRight, ui->chkDeadTopRight->isChecked());

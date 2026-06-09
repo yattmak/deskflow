@@ -62,7 +62,26 @@ public:
   }
   [[nodiscard]] int modifier(int m) const
   {
-    return m_Modifiers[m] == static_cast<int>(ScreenConfig::Modifier::DefaultMod) ? m : m_Modifiers[m];
+    const auto legacyMeta = static_cast<int>(ScreenConfig::Modifier::Meta);
+    const auto legacySuper = static_cast<int>(ScreenConfig::Modifier::Super);
+    const auto metaLeft = static_cast<int>(ScreenConfig::Modifier::MetaLeft);
+    const auto metaRight = static_cast<int>(ScreenConfig::Modifier::MetaRight);
+    const auto superLeft = static_cast<int>(ScreenConfig::Modifier::SuperLeft);
+    const auto superRight = static_cast<int>(ScreenConfig::Modifier::SuperRight);
+    const auto defaultMod = static_cast<int>(ScreenConfig::Modifier::DefaultMod);
+
+    if (m >= m_Modifiers.size() || m_Modifiers[m] == defaultMod) {
+      if ((m == metaLeft || m == metaRight) && m_Modifiers.size() > legacyMeta &&
+          m_Modifiers[legacyMeta] != defaultMod) {
+        return m_Modifiers[legacyMeta];
+      }
+      if ((m == superLeft || m == superRight) && m_Modifiers.size() > legacySuper &&
+          m_Modifiers[legacySuper] != defaultMod) {
+        return m_Modifiers[legacySuper];
+      }
+      return ScreenConfig::defaultModifier(m);
+    }
+    return m_Modifiers[m];
   }
   [[nodiscard]] const QList<int> &modifiers() const
   {
@@ -121,7 +140,18 @@ protected:
   }
   void setModifier(const Modifier m, const int n)
   {
-    m_Modifiers[static_cast<int8_t>(m)] = n;
+    const auto index = static_cast<int>(m);
+    if (index < 0) {
+      return;
+    }
+    if (index >= m_Modifiers.size()) {
+      const auto oldSize = m_Modifiers.size();
+      m_Modifiers.resize(index + 1);
+      for (auto i = oldSize; i < m_Modifiers.size(); ++i) {
+        m_Modifiers[i] = static_cast<int>(ScreenConfig::Modifier::DefaultMod);
+      }
+    }
+    m_Modifiers[index] = n;
   }
   QList<int> &modifiers()
   {
@@ -160,7 +190,7 @@ private:
   QPixmap m_Pixmap = QIcon::fromTheme("video-display").pixmap(QSize(96, 96));
   QString m_Name = {};
   QStringList m_Aliases = {};
-  QList<int> m_Modifiers = {0, 1, 2, 3, 4, 5};
+  QList<int> m_Modifiers = {0, 1, 2, 3, 4, 5, -1, -1, -1, -1};
   QList<bool> m_SwitchCorners = {false, false, false, false};
   int m_SwitchCornerSize = 0;
   QList<bool> m_Fixes{false, false, false, false};

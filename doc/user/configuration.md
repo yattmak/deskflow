@@ -326,11 +326,15 @@ A computer can have the following options:
 |preserveFocus| `true` or `false` | When true don't drop focus when switching computers
 |switchCorners| corners |See <a href="#switch-corners">switchCorners</a> below.|
 |switchCornerSize | integer | see switchCornerSize below.|
-|shift | shift ctrl alt meta super none | Map the server's shift modifer to different key on a client computer|
-|ctrl  | shift ctrl alt meta super none | Map the server's ctrl modifer to different key on a client computer|
-|alt | shift ctrl alt meta super none | Map the server's alt modifer to different key on a client computer|
-|meta|  shift ctrl alt meta super none | Map the server's meta modifer to different key on a client computer|
-|super|  shift ctrl alt meta super none | Map the server's super modifer to different key on a client computer|
+|shift | shift ctrl alt altgr meta super none | Map the server's shift modifier to different key on a client computer|
+|ctrl  | shift ctrl alt altgr meta super none | Map the server's ctrl modifier to different key on a client computer|
+|alt | shift ctrl alt altgr meta super none | Map the server's alt modifier to different key on a client computer|
+|meta|  shift ctrl alt altgr meta super none | Map both of the server's meta modifiers to a different key on a client computer|
+|metaLeft|  shift ctrl alt altgr meta super none | Map the server's left meta modifier to a different key on a client computer|
+|metaRight|  shift ctrl alt altgr meta super none | Map the server's right meta modifier to a different key on a client computer|
+|super|  shift ctrl alt altgr meta super none | Map both of the server's super modifiers to a different key on a client computer|
+|superLeft|  shift ctrl alt altgr meta super none | Map the server's left super modifier to a different key on a client computer|
+|superRight|  shift ctrl alt altgr meta super none | Map the server's right super modifier to a different key on a client computer|
 
 ### aliases section
 

@@ -10,6 +10,7 @@
 #include <QDialog>
 
 class QWidget;
+class QComboBox;
 class QString;
 
 class Screen;
@@ -39,4 +40,6 @@ private Q_SLOTS:
 private:
   std::unique_ptr<Ui::ScreenSettingsDialog> ui;
   Screen *m_screen;
+  QComboBox *m_comboMetaRight = nullptr;
+  QComboBox *m_comboSuperRight = nullptr;
 };

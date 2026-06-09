@@ -68,10 +68,12 @@ private:
 
   void resetKeepAliveAlarm();
   void setKeepAliveRate(double);
+  void resetModifierTranslationTables();
+  void setModifierKeyActive(KeyID, bool);
 
   // modifier key translation
   KeyID translateKey(KeyID) const;
-  KeyModifierMask translateModifierMask(KeyModifierMask) const;
+  KeyModifierMask translateModifierMask(KeyModifierMask, KeyID, bool) const;
 
   // event handlers
   void handleData();
@@ -118,6 +120,9 @@ private:
   bool m_ignoreMouse = false;
 
   KeyModifierID m_modifierTranslationTable[kKeyModifierIDLast];
+  KeyModifierID m_modifierKeyTranslationTable[kKeyModifierIDLast][2];
+  bool m_modifierKeyTranslationOverride[kKeyModifierIDLast][2];
+  bool m_activeModifierKeySides[kKeyModifierIDLast][2];
 
   double m_keepAliveAlarm = 0.0;
   EventQueueTimer *m_keepAliveAlarmTimer = nullptr;

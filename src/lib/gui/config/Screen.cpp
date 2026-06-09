@@ -51,12 +51,27 @@ void Screen::saveSettings(QSettingsProxy &settings) const
 QString Screen::screensSection() const
 {
   const auto lineTemplate = QStringLiteral("\t\t%1 = %2\n");
+  const int modifierOptions[] = {static_cast<int>(Shift), static_cast<int>(Ctrl), static_cast<int>(Alt)};
 
   QString out = QStringLiteral("\t%1:\n").arg(name());
-  for (int i = 0; i < modifiers().size(); i++) {
-    if (modifier(i) != i)
-      out.append(lineTemplate.arg(modifierName(i), modifierName(modifier(i))));
+  for (const auto option : modifierOptions) {
+    if (modifier(option) != defaultModifier(option))
+      out.append(lineTemplate.arg(modifierConfigName(option), modifierName(modifier(option))));
   }
+
+  const auto appendSidedModifier = [this, &out, &lineTemplate](int common, int left, int right) {
+    if (modifier(left) == modifier(right)) {
+      if (modifier(left) != defaultModifier(left))
+        out.append(lineTemplate.arg(modifierConfigName(common), modifierName(modifier(left))));
+    } else {
+      if (modifier(left) != defaultModifier(left))
+        out.append(lineTemplate.arg(modifierConfigName(left), modifierName(modifier(left))));
+      if (modifier(right) != defaultModifier(right))
+        out.append(lineTemplate.arg(modifierConfigName(right), modifierName(modifier(right))));
+    }
+  };
+  appendSidedModifier(static_cast<int>(Meta), static_cast<int>(MetaLeft), static_cast<int>(MetaRight));
+  appendSidedModifier(static_cast<int>(Super), static_cast<int>(SuperLeft), static_cast<int>(SuperRight));
 
   for (int i = 0; i < fixes().size(); i++)
     out.append(lineTemplate.arg(fixName(i), fixes().at(i) ? QStringLiteral("true") : QStringLiteral("false")));

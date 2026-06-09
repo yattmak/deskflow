@@ -9,6 +9,12 @@
 
 const char *ScreenConfig::m_ModifierNames[] = {"shift", "ctrl", "alt", "meta", "super", "none"};
 
+const char *ScreenConfig::m_ModifierConfigNames[] = {
+    "shift", "ctrl", "alt", "meta", "super", "none", "metaLeft", "metaRight", "superLeft", "superRight"
+};
+
+const int ScreenConfig::m_DefaultModifiers[] = {0, 1, 2, 3, 4, 5, 3, 3, 4, 4};
+
 const char *ScreenConfig::m_FixNames[] = {
     "halfDuplexCapsLock", "halfDuplexNumLock", "halfDuplexScrollLock", "xtestIsXineramaUnaware"
 };

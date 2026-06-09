@@ -786,8 +786,16 @@ void Config::readSectionScreens(ConfigReadContext &s)
         addOption(screen, kOptionModifierMapForAltGr, s.parseModifierKey(value));
       } else if (name == "meta") {
         addOption(screen, kOptionModifierMapForMeta, s.parseModifierKey(value));
+      } else if (name == "metaLeft" || name == "metaleft") {
+        addOption(screen, kOptionModifierMapForMetaLeft, s.parseModifierKey(value));
+      } else if (name == "metaRight" || name == "metaright") {
+        addOption(screen, kOptionModifierMapForMetaRight, s.parseModifierKey(value));
       } else if (name == "super") {
         addOption(screen, kOptionModifierMapForSuper, s.parseModifierKey(value));
+      } else if (name == "superLeft" || name == "superleft") {
+        addOption(screen, kOptionModifierMapForSuperLeft, s.parseModifierKey(value));
+      } else if (name == "superRight" || name == "superright") {
+        addOption(screen, kOptionModifierMapForSuperRight, s.parseModifierKey(value));
       } else if (name == "xtestIsXineramaUnaware") {
         addOption(screen, kOptionXTestXineramaUnaware, s.parseBoolean(value));
       } else if (name == "switchCorners") {
@@ -1206,8 +1214,20 @@ const char *Config::getOptionName(OptionID id)
   if (id == kOptionModifierMapForMeta) {
     return "meta";
   }
+  if (id == kOptionModifierMapForMetaLeft) {
+    return "metaLeft";
+  }
+  if (id == kOptionModifierMapForMetaRight) {
+    return "metaRight";
+  }
   if (id == kOptionModifierMapForSuper) {
     return "super";
+  }
+  if (id == kOptionModifierMapForSuperLeft) {
+    return "superLeft";
+  }
+  if (id == kOptionModifierMapForSuperRight) {
+    return "superRight";
   }
   if (id == kOptionHeartbeat) {
     return "heartbeat";
@@ -1270,7 +1290,10 @@ std::string Config::getOptionValue(OptionID id, OptionValue value)
     return (value != 0) ? "true" : "false";
   }
   if (id == kOptionModifierMapForShift || id == kOptionModifierMapForControl || id == kOptionModifierMapForAlt ||
-      id == kOptionModifierMapForAltGr || id == kOptionModifierMapForMeta || id == kOptionModifierMapForSuper) {
+      id == kOptionModifierMapForAltGr || id == kOptionModifierMapForMeta ||
+      id == kOptionModifierMapForMetaLeft || id == kOptionModifierMapForMetaRight ||
+      id == kOptionModifierMapForSuper || id == kOptionModifierMapForSuperLeft ||
+      id == kOptionModifierMapForSuperRight) {
     switch (value) {
     case kKeyModifierIDShift:
       return "shift";
