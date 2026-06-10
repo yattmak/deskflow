@@ -13,6 +13,7 @@
 #include <Carbon/Carbon.h>
 
 #include <map>
+#include <string>
 #include <vector>
 
 class IOSXKeyResource;
@@ -67,7 +68,8 @@ public:
   that was pressed or released, or 0 if the button doesn't map to a known
   KeyID.
   */
-  KeyButton mapKeyFromEvent(KeyIDs &ids, KeyModifierMask *maskOut, CGEventRef event) const;
+  KeyButton
+  mapKeyFromEvent(KeyIDs &ids, KeyModifierMask *maskOut, CGEventRef event, std::string *languageOut = nullptr) const;
 
   //! Map key and mask to native values
   /*!

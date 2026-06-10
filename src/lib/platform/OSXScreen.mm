@@ -1106,7 +1106,8 @@ bool OSXScreen::onKey(CGEventRef event)
   // map event to keys
   KeyModifierMask mask;
   OSXKeyState::KeyIDs keys;
-  KeyButton button = m_keyState->mapKeyFromEvent(keys, &mask, event);
+  std::string language;
+  KeyButton button = m_keyState->mapKeyFromEvent(keys, &mask, event, &language);
   if (button == 0) {
     return false;
   }
@@ -1133,7 +1134,7 @@ bool OSXScreen::onKey(CGEventRef event)
 
   // send key events
   for (OSXKeyState::KeyIDs::const_iterator i = keys.begin(); i != keys.end(); ++i) {
-    m_keyState->sendKeyEvent(getEventTarget(), down, isRepeat, *i, sendMask, 1, button);
+    m_keyState->sendKeyEvent(getEventTarget(), down, isRepeat, *i, sendMask, 1, button, language);
   }
 
   return true;

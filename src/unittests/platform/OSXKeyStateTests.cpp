@@ -9,12 +9,16 @@
 #include "OSXKeyStateTests.h"
 
 #include "base/EventQueue.h"
+#include "deskflow/unix/OSXInputSource.h"
 
+#include <Carbon/Carbon.h>
+#include <QString>
 #include <vector>
 
 #define SHIFT_ID_L kKeyShift_L
 #define SHIFT_ID_R kKeyShift_R
-#define SHIFT_BUTTON 57
+#define SHIFT_BUTTON_L 57
+#define SHIFT_BUTTON_R 61
 #define A_CHAR_ID 0x00000061
 #define A_CHAR_BUTTON 001
 
@@ -42,6 +46,34 @@ public:
 
   std::vector<SentKeyEvent> m_sentKeyEvents;
 };
+
+std::string cfStringToString(CFStringRef value)
+{
+  char buffer[128] = {0};
+  if (value == nullptr || !CFStringGetCString(value, buffer, sizeof(buffer), kCFStringEncodingUTF8)) {
+    return {};
+  }
+  return buffer;
+}
+
+deskflow::osx::InputSourceRecord makeInputSourceRecord(
+    const std::string &id, const std::string &type, const std::string &language, bool hasUnicodeLayoutData,
+    bool asciiCapable
+)
+{
+  deskflow::osx::InputSourceRecord record;
+  record.m_id = id;
+  record.m_type = type;
+  record.m_language = language;
+  record.m_hasUnicodeLayoutData = hasUnicodeLayoutData;
+  record.m_asciiCapable = asciiCapable;
+  return record;
+}
+
+std::string keyboardLayoutType()
+{
+  return cfStringToString(kTISTypeKeyboardLayout);
+}
 
 } // namespace
 
@@ -82,6 +114,64 @@ void OSXKeyStateTests::mapModifiersFromOSX_OSXMask()
   uint32_t numMask = 0 | kCGEventFlagMaskNumericPad;
   outMask = keyState.mapModifiersFromOSX(numMask);
   QCOMPARE(outMask, KeyModifierNumLock);
+}
+
+void OSXKeyStateTests::chooseTranslationInputSource_activeABC()
+{
+  std::vector<deskflow::osx::InputSourceRecord> records = {
+      makeInputSourceRecord("com.apple.keylayout.ABC", keyboardLayoutType(), "en", true, true)
+  };
+
+  auto choice = deskflow::osx::chooseTranslationInputSource(records, 0);
+
+  QVERIFY(choice.has_value());
+  QCOMPARE(choice->m_index, std::size_t{0});
+  QCOMPARE(choice->m_fallback, false);
+  QCOMPARE(QString::fromStdString(choice->m_language), QString("en"));
+}
+
+void OSXKeyStateTests::chooseTranslationInputSource_inputMethodFallbackABC()
+{
+  std::vector<deskflow::osx::InputSourceRecord> records = {
+      makeInputSourceRecord("org.youknowone.inputmethod.Gureum.han2", "Input Method", "ko", false, false),
+      makeInputSourceRecord("com.apple.keylayout.ABC", keyboardLayoutType(), "en", true, true)
+  };
+
+  auto choice = deskflow::osx::chooseTranslationInputSource(records, 0);
+
+  QVERIFY(choice.has_value());
+  QCOMPARE(choice->m_index, std::size_t{1});
+  QCOMPARE(choice->m_fallback, true);
+  QCOMPARE(QString::fromStdString(choice->m_language), QString("en"));
+}
+
+void OSXKeyStateTests::chooseTranslationInputSource_preservesDvorak()
+{
+  std::vector<deskflow::osx::InputSourceRecord> records = {
+      makeInputSourceRecord("com.apple.keylayout.Dvorak", keyboardLayoutType(), "en", true, true),
+      makeInputSourceRecord("com.apple.keylayout.ABC", keyboardLayoutType(), "en", true, true)
+  };
+
+  auto choice = deskflow::osx::chooseTranslationInputSource(records, 0);
+
+  QVERIFY(choice.has_value());
+  QCOMPARE(choice->m_index, std::size_t{0});
+  QCOMPARE(choice->m_fallback, false);
+}
+
+void OSXKeyStateTests::chooseTranslationInputSource_firstAsciiFallback()
+{
+  std::vector<deskflow::osx::InputSourceRecord> records = {
+      makeInputSourceRecord("com.example.inputmethod.Korean", "Input Method", "ko", false, false),
+      makeInputSourceRecord("com.example.keylayout.Ascii", keyboardLayoutType(), "en", true, true)
+  };
+
+  auto choice = deskflow::osx::chooseTranslationInputSource(records, 0);
+
+  QVERIFY(choice.has_value());
+  QCOMPARE(choice->m_index, std::size_t{1});
+  QCOMPARE(choice->m_fallback, true);
+  QCOMPARE(QString::fromStdString(choice->m_language), QString("en"));
 }
 
 void OSXKeyStateTests::mapKeyFromEvent_sidedCommandModifiers()
@@ -159,16 +249,16 @@ void OSXKeyStateTests::fakePollShift()
   keyState.updateKeyMap();
 
   keyState.fakeKeyDown(SHIFT_ID_L, 0, 1, "en");
-  QVERIFY(isKeyPressed(keyState, SHIFT_BUTTON));
+  QVERIFY(isKeyPressed(keyState, SHIFT_BUTTON_L));
 
   keyState.fakeKeyUp(1);
-  QVERIFY(!isKeyPressed(keyState, SHIFT_BUTTON));
+  QVERIFY(!isKeyPressed(keyState, SHIFT_BUTTON_L));
 
   keyState.fakeKeyDown(SHIFT_ID_R, 0, 2, "en");
-  QVERIFY(isKeyPressed(keyState, SHIFT_BUTTON));
+  QVERIFY(isKeyPressed(keyState, SHIFT_BUTTON_R));
 
   keyState.fakeKeyUp(2);
-  QVERIFY(!isKeyPressed(keyState, SHIFT_BUTTON));
+  QVERIFY(!isKeyPressed(keyState, SHIFT_BUTTON_R));
 }
 
 void OSXKeyStateTests::fakePollChar()
@@ -224,7 +314,8 @@ bool OSXKeyStateTests::isKeyPressed(const OSXKeyState &keyState, KeyButton butto
       return true;
     }
   }
-  return false;
+  // Synthetic macOS key events are not always reflected in GetKeys immediately.
+  return keyState.getKeyState(button) != 0;
 }
 
 QTEST_MAIN(OSXKeyStateTests)

@@ -25,11 +25,19 @@ IKeyState::IKeyState(const IEventQueue *)
 
 IKeyState::KeyInfo *IKeyState::KeyInfo::alloc(KeyID id, KeyModifierMask mask, KeyButton button, int32_t count)
 {
+  return allocWithLanguage(id, mask, button, count, std::string());
+}
+
+IKeyState::KeyInfo *IKeyState::KeyInfo::allocWithLanguage(
+    KeyID id, KeyModifierMask mask, KeyButton button, int32_t count, const std::string &language
+)
+{
   auto *info = new KeyInfo();
   info->m_key = id;
   info->m_mask = mask;
   info->m_button = button;
   info->m_count = count;
+  info->m_language = language;
   return info;
 }
 
@@ -55,6 +63,7 @@ IKeyState::KeyInfo *IKeyState::KeyInfo::alloc(const KeyInfo &x)
   info->m_button = x.m_button;
   info->m_count = x.m_count;
   info->m_screens = x.m_screens;
+  info->m_language = x.m_language;
   return info;
 }
 
@@ -86,7 +95,7 @@ bool IKeyState::KeyInfo::equal(const KeyInfo *a, const KeyInfo *b)
 {
   return (
       a->m_key == b->m_key && a->m_mask == b->m_mask && a->m_button == b->m_button && a->m_count == b->m_count &&
-      a->m_screens == b->m_screens
+      a->m_screens == b->m_screens && a->m_language == b->m_language
   );
 }
 

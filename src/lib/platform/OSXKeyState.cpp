@@ -8,6 +8,7 @@
 #include "platform/OSXKeyState.h"
 #include "arch/Arch.h"
 #include "base/Log.h"
+#include "deskflow/unix/OSXInputSource.h"
 #include "platform/OSXMediaKeySupport.h"
 #include "platform/OSXUchrKeyResource.h"
 
@@ -298,9 +299,13 @@ KeyModifierMask OSXKeyState::mapModifiersToCarbon(uint32_t mask) const
   return outMask;
 }
 
-KeyButton OSXKeyState::mapKeyFromEvent(KeyIDs &ids, KeyModifierMask *maskOut, CGEventRef event) const
+KeyButton
+OSXKeyState::mapKeyFromEvent(KeyIDs &ids, KeyModifierMask *maskOut, CGEventRef event, std::string *languageOut) const
 {
   ids.clear();
+  if (languageOut != nullptr) {
+    languageOut->clear();
+  }
 
   // map modifier key
   if (maskOut != nullptr) {
@@ -330,10 +335,11 @@ KeyButton OSXKeyState::mapKeyFromEvent(KeyIDs &ids, KeyModifierMask *maskOut, CG
     return mapVirtualKeyToKeyButton(vkCode);
   }
 
-  // get keyboard info
-  AutoTISInputSourceRef currentKeyboardLayout(TISCopyCurrentKeyboardLayoutInputSource(), CFRelease);
-
-  if (!currentKeyboardLayout) {
+  deskflow::osx::TranslationInputSource translationSource = deskflow::osx::resolveTranslationInputSource();
+  if (!translationSource.m_source) {
+    LOG_DEBUG1("macOS input source translation unavailable: active=%s type=%s lang=%s",
+               translationSource.m_activeID.c_str(), translationSource.m_activeType.c_str(),
+               translationSource.m_activeLanguage.c_str());
     return kKeyNone;
   }
 
@@ -363,7 +369,11 @@ KeyButton OSXKeyState::mapKeyFromEvent(KeyIDs &ids, KeyModifierMask *maskOut, CG
   }
 
   // translate via uchr resource
-  CFDataRef ref = (CFDataRef)TISGetInputSourceProperty(currentKeyboardLayout.get(), kTISPropertyUnicodeKeyLayoutData);
+  CFDataRef ref =
+      (CFDataRef)TISGetInputSourceProperty(translationSource.m_source.get(), kTISPropertyUnicodeKeyLayoutData);
+  if (ref == nullptr) {
+    return 0;
+  }
   const UCKeyboardLayout *layout = (const UCKeyboardLayout *)CFDataGetBytePtr(ref);
   const bool layoutValid = (layout != nullptr);
 
@@ -371,7 +381,13 @@ KeyButton OSXKeyState::mapKeyFromEvent(KeyIDs &ids, KeyModifierMask *maskOut, CG
     // translate key
     UniCharCount count;
     UniChar chars[2];
-    LOG_DEBUG2("modifiers: %08x", modifiers & 0xffu);
+    LOG_DEBUG2(
+        "macOS input source: active=%s type=%s lang=%s selected=%s selectedLang=%s fallback=%s vk=0x%02x flags=0x%llx modifiers=0x%02x",
+        translationSource.m_activeID.c_str(), translationSource.m_activeType.c_str(),
+        translationSource.m_activeLanguage.c_str(), translationSource.m_selectedID.c_str(),
+        translationSource.m_language.c_str(), translationSource.m_fallback ? "true" : "false", vkCode & 0xffu,
+        static_cast<unsigned long long>(CGEventGetFlags(event)), modifiers & 0xffu
+    );
     OSStatus status = UCKeyTranslate(
         layout, vkCode & 0xffu, action, (modifiers >> 8) & 0xffu, LMGetKbdType(), 0, &m_deadKeyState,
         sizeof(chars) / sizeof(chars[0]), &count, chars
@@ -384,6 +400,14 @@ KeyButton OSXKeyState::mapKeyFromEvent(KeyIDs &ids, KeyModifierMask *maskOut, CG
         for (UniCharCount i = 0; i < count; ++i) {
           ids.push_back(IOSXKeyResource::unicharToKeyID(chars[i]));
         }
+        if (languageOut != nullptr) {
+          *languageOut = translationSource.m_language;
+        }
+        LOG_DEBUG2(
+            "macOS key translation: vk=0x%02x keyIDs=%zu firstKeyID=0x%08x language=%s fallback=%s", vkCode & 0xffu,
+            ids.size(), ids.empty() ? kKeyNone : ids.front(), translationSource.m_language.c_str(),
+            translationSource.m_fallback ? "true" : "false"
+        );
         adjustAltGrModifier(ids, maskOut, isCommand);
         return mapVirtualKeyToKeyButton(vkCode);
       }

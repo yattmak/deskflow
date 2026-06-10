@@ -706,21 +706,29 @@ void KeyState::sendKeyEvent(
     void *target, bool press, bool isAutoRepeat, KeyID key, KeyModifierMask mask, int32_t count, KeyButton button
 )
 {
+  sendKeyEvent(target, press, isAutoRepeat, key, mask, count, button, std::string());
+}
+
+void KeyState::sendKeyEvent(
+    void *target, bool press, bool isAutoRepeat, KeyID key, KeyModifierMask mask, int32_t count, KeyButton button,
+    const std::string &language
+)
+{
   using enum EventTypes;
   if (m_keyMap.isHalfDuplex(key, button)) {
     if (isAutoRepeat) {
       // ignore auto-repeat on half-duplex keys
     } else {
-      m_events->addEvent(Event(KeyStateKeyDown, target, KeyInfo::alloc(key, mask, button, 1)));
-      m_events->addEvent(Event(KeyStateKeyUp, target, KeyInfo::alloc(key, mask, button, 1)));
+      m_events->addEvent(Event(KeyStateKeyDown, target, KeyInfo::allocWithLanguage(key, mask, button, 1, language)));
+      m_events->addEvent(Event(KeyStateKeyUp, target, KeyInfo::allocWithLanguage(key, mask, button, 1, language)));
     }
   } else {
     if (isAutoRepeat) {
-      m_events->addEvent(Event(KeyStateKeyRepeat, target, KeyInfo::alloc(key, mask, button, count)));
+      m_events->addEvent(Event(KeyStateKeyRepeat, target, KeyInfo::allocWithLanguage(key, mask, button, count, language)));
     } else if (press) {
-      m_events->addEvent(Event(KeyStateKeyDown, target, KeyInfo::alloc(key, mask, button, 1)));
+      m_events->addEvent(Event(KeyStateKeyDown, target, KeyInfo::allocWithLanguage(key, mask, button, 1, language)));
     } else {
-      m_events->addEvent(Event(KeyStateKeyUp, target, KeyInfo::alloc(key, mask, button, 1)));
+      m_events->addEvent(Event(KeyStateKeyUp, target, KeyInfo::allocWithLanguage(key, mask, button, 1, language)));
     }
   }
 }

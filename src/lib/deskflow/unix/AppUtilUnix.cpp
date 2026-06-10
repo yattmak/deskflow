@@ -13,6 +13,7 @@
 #include "deskflow/unix/X11LayoutsParser.h"
 #include <X11/XKBlib.h>
 #elif WINAPI_CARBON
+#include "deskflow/unix/OSXInputSource.h"
 #include <Carbon/Carbon.h>
 #include <platform/OSXAutoTypes.h>
 #endif
@@ -51,33 +52,7 @@ std::vector<std::string> AppUtilUnix::getKeyboardLayoutList()
   layoutLangCodes = X11LayoutsParser::getX11LanguageList(m_evdev);
 
 #elif WINAPI_CARBON
-  CFStringRef keys[] = {kTISPropertyInputSourceCategory};
-  CFStringRef values[] = {kTISCategoryKeyboardInputSource};
-  AutoCFDictionary dict(
-      CFDictionaryCreate(nullptr, (const void **)keys, (const void **)values, 1, nullptr, nullptr), CFRelease
-  );
-  AutoCFArray kbds(TISCreateInputSourceList(dict.get(), false), CFRelease);
-
-  for (CFIndex i = 0; i < CFArrayGetCount(kbds.get()); ++i) {
-    TISInputSourceRef keyboardLayout = (TISInputSourceRef)CFArrayGetValueAtIndex(kbds.get(), i);
-    auto layoutLanguages = (CFArrayRef)TISGetInputSourceProperty(keyboardLayout, kTISPropertyInputSourceLanguages);
-    char temporaryCString[128] = {0};
-    for (CFIndex index = 0; index < CFArrayGetCount(layoutLanguages) && layoutLanguages; index++) {
-      auto languageCode = (CFStringRef)CFArrayGetValueAtIndex(layoutLanguages, index);
-      if (!languageCode || !CFStringGetCString(languageCode, temporaryCString, 128, kCFStringEncodingUTF8)) {
-        continue;
-      }
-
-      std::string langCode(temporaryCString);
-      if (langCode.size() == 2 &&
-          std::find(layoutLangCodes.begin(), layoutLangCodes.end(), langCode) == layoutLangCodes.end()) {
-        layoutLangCodes.push_back(langCode);
-      }
-
-      // Save only first language code
-      break;
-    }
-  }
+  layoutLangCodes = deskflow::osx::getKeyboardLayoutLanguages();
 #endif
 
   return layoutLangCodes;

@@ -17,6 +17,10 @@ private Q_SLOTS:
   void initTestCase();
   // Test are run in order top to bottom
   void mapModifiersFromOSX_OSXMask();
+  void chooseTranslationInputSource_activeABC();
+  void chooseTranslationInputSource_inputMethodFallbackABC();
+  void chooseTranslationInputSource_preservesDvorak();
+  void chooseTranslationInputSource_firstAsciiFallback();
   void mapKeyFromEvent_sidedCommandModifiers();
   void handleModifierKeys_sidedCommandModifiers();
   void fakePollShift();

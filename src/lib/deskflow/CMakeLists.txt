@@ -21,6 +21,12 @@ elseif(UNIX)
     unix/X11LayoutsParser.cpp
     unix/X11LayoutsParser.h
   )
+  if(APPLE)
+    list(APPEND PLATFORM_CODE
+      unix/OSXInputSource.cpp
+      unix/OSXInputSource.h
+    )
+  endif()
 endif()
 
 add_library(${lib_name} STATIC ${PLATFORM_CODE}

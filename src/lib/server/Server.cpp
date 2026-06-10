@@ -1218,7 +1218,7 @@ void Server::handleClipboardChanged(const Event &event, BaseClientProxy *client)
 void Server::handleKeyDownEvent(const Event &event)
 {
   const auto *info = static_cast<IPlatformScreen::KeyInfo *>(event.getData());
-  auto lang = AppUtil::instance().getCurrentLanguageCode();
+  auto lang = info->m_language.empty() ? AppUtil::instance().getCurrentLanguageCode() : info->m_language;
   onKeyDown(info->m_key, info->m_mask, info->m_button, lang, info->m_screens.c_str());
 }
 
@@ -1231,7 +1231,7 @@ void Server::handleKeyUpEvent(const Event &event)
 void Server::handleKeyRepeatEvent(const Event &event)
 {
   const auto *info = static_cast<IPlatformScreen::KeyInfo *>(event.getData());
-  auto lang = AppUtil::instance().getCurrentLanguageCode();
+  auto lang = info->m_language.empty() ? AppUtil::instance().getCurrentLanguageCode() : info->m_language;
   onKeyRepeat(info->m_key, info->m_mask, info->m_count, info->m_button, lang);
 }
 

@@ -31,6 +31,7 @@ public:
   {
   public:
     static KeyInfo *alloc(KeyID, KeyModifierMask, KeyButton, int32_t count);
+    static KeyInfo *allocWithLanguage(KeyID, KeyModifierMask, KeyButton, int32_t count, const std::string &language);
     static KeyInfo *alloc(KeyID, KeyModifierMask, KeyButton, int32_t count, const std::set<std::string> &destinations);
     static KeyInfo *alloc(const KeyInfo &);
 
@@ -46,6 +47,7 @@ public:
     KeyButton m_button;
     int32_t m_count;
     std::string m_screens;
+    std::string m_language;
   };
 
   using KeyButtonSet = std::set<KeyButton>;
