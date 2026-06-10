@@ -1086,6 +1086,15 @@ bool OSXScreen::onKey(CGEventRef event)
         LOG_DEBUG1("event: unable to synthesize non-modifier flags-changed keycode=%d", virtualKey);
         return false;
       }
+      if (keys.empty()) {
+        LOG_DEBUG1("event: synthesized non-modifier flags-changed keycode=%d produced no KeyIDs", virtualKey);
+        return true;
+      }
+
+      // When Caps Lock is used as an input-source switch, IME-generated
+      // flagsChanged character events still carry AlphaShift.  Do not expose
+      // that local input-source latch as a remote character modifier.
+      mask &= ~KeyModifierCapsLock;
 
       KeyModifierMask sendMask = (mask & ~KeyModifierAltGr);
       if ((mask & KeyModifierAltGr) != 0) {
