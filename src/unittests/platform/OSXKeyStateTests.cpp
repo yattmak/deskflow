@@ -10,11 +10,40 @@
 
 #include "base/EventQueue.h"
 
+#include <vector>
+
 #define SHIFT_ID_L kKeyShift_L
 #define SHIFT_ID_R kKeyShift_R
 #define SHIFT_BUTTON 57
 #define A_CHAR_ID 0x00000061
 #define A_CHAR_BUTTON 001
+
+namespace {
+
+struct SentKeyEvent
+{
+  bool m_press;
+  KeyID m_key;
+  KeyModifierMask m_mask;
+  KeyButton m_button;
+};
+
+class RecordingOSXKeyState : public OSXKeyState
+{
+public:
+  using OSXKeyState::OSXKeyState;
+
+  void sendKeyEvent(
+      void *, bool press, bool, KeyID key, KeyModifierMask mask, int32_t, KeyButton button
+  ) override
+  {
+    m_sentKeyEvents.push_back({press, key, mask, button});
+  }
+
+  std::vector<SentKeyEvent> m_sentKeyEvents;
+};
+
+} // namespace
 
 void OSXKeyStateTests::initTestCase()
 {
@@ -53,6 +82,73 @@ void OSXKeyStateTests::mapModifiersFromOSX_OSXMask()
   uint32_t numMask = 0 | kCGEventFlagMaskNumericPad;
   outMask = keyState.mapModifiersFromOSX(numMask);
   QCOMPARE(outMask, KeyModifierNumLock);
+}
+
+void OSXKeyStateTests::mapKeyFromEvent_sidedCommandModifiers()
+{
+  deskflow::KeyMap keyMap;
+  EventQueue eventQueue;
+  OSXKeyState keyState(&eventQueue, keyMap, {"en"}, true);
+
+  auto verifyCommandKey = [&keyState](CGKeyCode virtualKey, KeyID expectedKeyID) {
+    CGEventRef event = CGEventCreateKeyboardEvent(nullptr, virtualKey, true);
+    QVERIFY(event != nullptr);
+    CGEventSetType(event, kCGEventFlagsChanged);
+
+    OSXKeyState::KeyIDs ids;
+    const KeyButton button = keyState.mapKeyFromEvent(ids, nullptr, event);
+    CFRelease(event);
+
+    QCOMPARE(button, static_cast<KeyButton>(virtualKey + 1));
+    QCOMPARE(ids.size(), std::size_t{1});
+    QCOMPARE(ids[0], expectedKeyID);
+  };
+
+  verifyCommandKey(kVK_Command, kKeySuper_L);
+  verifyCommandKey(kVK_RightCommand, kKeySuper_R);
+}
+
+void OSXKeyStateTests::handleModifierKeys_sidedCommandModifiers()
+{
+  deskflow::KeyMap keyMap;
+  EventQueue eventQueue;
+  RecordingOSXKeyState keyState(&eventQueue, keyMap, {"en"}, true);
+  void *target = reinterpret_cast<void *>(0x1);
+
+  keyState.handleModifierKeys(
+      target, kVK_Command, NX_COMMANDMASK | NX_DEVICELCMDKEYMASK, 0, KeyModifierSuper
+  );
+  QCOMPARE(keyState.m_sentKeyEvents.size(), std::size_t{1});
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_press, true);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_key, kKeySuper_L);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_mask, KeyModifierSuper);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_button, static_cast<KeyButton>(kVK_Command + 1));
+
+  keyState.handleModifierKeys(
+      target, kVK_RightCommand, NX_COMMANDMASK | NX_DEVICELCMDKEYMASK | NX_DEVICERCMDKEYMASK, KeyModifierSuper,
+      KeyModifierSuper
+  );
+  QCOMPARE(keyState.m_sentKeyEvents.size(), std::size_t{2});
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_press, true);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_key, kKeySuper_R);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_mask, KeyModifierSuper);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_button, static_cast<KeyButton>(kVK_RightCommand + 1));
+
+  keyState.handleModifierKeys(
+      target, kVK_RightCommand, NX_COMMANDMASK | NX_DEVICELCMDKEYMASK, KeyModifierSuper, KeyModifierSuper
+  );
+  QCOMPARE(keyState.m_sentKeyEvents.size(), std::size_t{3});
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_press, false);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_key, kKeySuper_R);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_mask, KeyModifierSuper);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_button, static_cast<KeyButton>(kVK_RightCommand + 1));
+
+  keyState.handleModifierKeys(target, kVK_Command, 0, KeyModifierSuper, 0);
+  QCOMPARE(keyState.m_sentKeyEvents.size(), std::size_t{4});
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_press, false);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_key, kKeySuper_L);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_mask, 0);
+  QCOMPARE(keyState.m_sentKeyEvents.back().m_button, static_cast<KeyButton>(kVK_Command + 1));
 }
 
 void OSXKeyStateTests::fakePollShift()

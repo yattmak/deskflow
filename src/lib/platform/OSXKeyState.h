@@ -38,7 +38,9 @@ public:
   Determines which modifier keys have changed and updates the modifier
   state and sends key events as appropriate.
   */
-  void handleModifierKeys(void *target, KeyModifierMask oldMask, KeyModifierMask newMask);
+  void handleModifierKeys(
+      void *target, uint32_t virtualKey, CGEventFlags macMask, KeyModifierMask oldMask, KeyModifierMask newMask
+  );
 
   //@}
   //! @name accessors
@@ -157,9 +159,13 @@ private:
   mutable uint32_t m_deadKeyState;
   AutoCFArray m_groups{nullptr, CFRelease};
   GroupMap m_groupMap;
-  bool m_shiftPressed;
-  bool m_controlPressed;
-  bool m_altPressed;
-  bool m_superPressed;
+  bool m_leftShiftPressed;
+  bool m_rightShiftPressed;
+  bool m_leftControlPressed;
+  bool m_rightControlPressed;
+  bool m_leftAltPressed;
+  bool m_rightAltPressed;
+  bool m_leftSuperPressed;
+  bool m_rightSuperPressed;
   bool m_capsPressed;
 };

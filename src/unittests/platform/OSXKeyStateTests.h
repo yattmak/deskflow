@@ -17,6 +17,8 @@ private Q_SLOTS:
   void initTestCase();
   // Test are run in order top to bottom
   void mapModifiersFromOSX_OSXMask();
+  void mapKeyFromEvent_sidedCommandModifiers();
+  void handleModifierKeys_sidedCommandModifiers();
   void fakePollShift();
   void fakePollChar();
   void fakePollCharWithModifier();
