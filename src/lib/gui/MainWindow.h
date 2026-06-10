@@ -137,6 +137,8 @@ private:
   void updateFromLogLine(const QString &line);
   void checkConnected(const QString &line);
   void checkFingerprint(const QString &line);
+  void checkSecureInput(const QString &line);
+  void setSecureInputStatus(bool active, const QString &app = QString());
   void closeEvent(QCloseEvent *event) override;
   void secureSocket(bool secureSocket);
   void connectSlots();
@@ -225,6 +227,8 @@ private:
   QAction *m_actionStartCore = nullptr;
   QAction *m_actionRestartCore = nullptr;
   QAction *m_actionStopCore = nullptr;
+  QAction *m_actionSecureInputStatus = nullptr;
+  QAction *m_actionSecureInputSeparator = nullptr;
 
   // Network monitoring
   NetworkMonitor *m_networkMonitor = nullptr;
@@ -233,4 +237,7 @@ private:
   // Server IP strategy optimization
   QStringList m_serverStartIPs;
   QString m_serverStartSuggestedIP;
+
+  bool m_secureInputActive = false;
+  QString m_secureInputApp;
 };

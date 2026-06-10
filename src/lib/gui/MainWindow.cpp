@@ -85,6 +85,7 @@ MainWindow::MainWindow()
       m_actionStartCore{new QAction(this)},
       m_actionRestartCore{new QAction(this)},
       m_actionStopCore{new QAction(this)},
+      m_actionSecureInputStatus{new QAction(this)},
       m_networkMonitor{new NetworkMonitor(this)}
 {
   ui->setupUi(this);
@@ -126,6 +127,11 @@ MainWindow::MainWindow()
 
   m_actionStopCore->setIcon(QIcon::fromTheme(QIcon::ThemeIcon::ProcessStop));
   m_actionStopCore->setMenuRole(QAction::NoRole);
+
+  m_actionSecureInputStatus->setEnabled(false);
+  m_actionSecureInputStatus->setVisible(false);
+  m_actionSecureInputStatus->setIcon(QIcon::fromTheme(QStringLiteral("dialog-warning")));
+  m_actionSecureInputStatus->setMenuRole(QAction::NoRole);
 
   m_actionReportBug->setIcon(QIcon::fromTheme(QStringLiteral("tools-report-bug")));
   m_actionReportBug->setMenuRole(QAction::NoRole);
@@ -708,11 +714,14 @@ void MainWindow::createMenuBar()
 void MainWindow::setupTrayIcon()
 {
   auto trayMenu = new QMenu(this);
+  trayMenu->addAction(m_actionSecureInputStatus);
+  m_actionSecureInputSeparator = trayMenu->addSeparator();
   trayMenu->addActions(
       {m_actionStartCore, m_actionRestartCore, m_actionStopCore, m_actionMinimize, m_actionRestore, m_actionTrayQuit}
   );
   trayMenu->insertSeparator(m_actionMinimize);
   trayMenu->insertSeparator(m_actionTrayQuit);
+  m_actionSecureInputSeparator->setVisible(false);
   m_trayIcon->setContextMenu(trayMenu);
 
   setTrayIcon();
@@ -756,6 +765,16 @@ void MainWindow::saveSettings() const
 void MainWindow::setTrayIcon()
 {
   static const auto fallbackPath = QStringLiteral(":/icons/%1-%2/apps/64/%3");
+  static const auto statusFallbackPath = QStringLiteral(":/icons/%1-%2/status/64/%3");
+
+  if (m_secureInputActive) {
+    const auto warningIcon = QStringLiteral("dialog-warning");
+    m_trayIcon->setIcon(QIcon::fromTheme(warningIcon, QIcon(statusFallbackPath.arg(kAppId, iconMode(), warningIcon))));
+    m_trayIcon->setToolTip(tr("Keyboard input is blocked by %1").arg(m_secureInputApp));
+    return;
+  }
+
+  m_trayIcon->setToolTip(kAppName);
 
   QString themeIcon = kRevFqdnName;
   if (!Settings::value(Settings::Gui::SymbolicTrayIcon).toBool()) {
@@ -794,6 +813,7 @@ void MainWindow::updateFromLogLine(const QString &line)
 {
   checkConnected(line);
   checkFingerprint(line);
+  checkSecureInput(line);
 }
 
 void MainWindow::checkConnected(const QString &line)
@@ -856,6 +876,46 @@ void MainWindow::checkFingerprint(const QString &line)
       m_checkedClients.removeAll(sha256Text);
     }
   }
+}
+
+void MainWindow::checkSecureInput(const QString &line)
+{
+  static const QRegularExpression secureInputActive(
+      QStringLiteral(R"regex(secure input active: application "([^"]+)" is blocking keyboard capture)regex")
+  );
+
+  if (const auto match = secureInputActive.match(line); match.hasMatch()) {
+    setSecureInputStatus(true, match.captured(1));
+    return;
+  }
+
+  if (line.contains(QStringLiteral("secure input inactive: keyboard capture restored"))) {
+    setSecureInputStatus(false);
+  }
+}
+
+void MainWindow::setSecureInputStatus(bool active, const QString &app)
+{
+  const auto blockedApp = app.isEmpty() ? tr("an application") : app;
+  if (m_secureInputActive == active && m_secureInputApp == blockedApp) {
+    return;
+  }
+
+  m_secureInputActive = active;
+  m_secureInputApp = active ? blockedApp : QString();
+
+  if (active) {
+    m_actionSecureInputStatus->setText(tr("Keyboard input blocked by %1").arg(m_secureInputApp));
+    m_actionSecureInputStatus->setToolTip(
+        tr("macOS Secure Input is preventing %1 from capturing character keys.").arg(kAppName)
+    );
+  }
+
+  m_actionSecureInputStatus->setVisible(active);
+  if (m_actionSecureInputSeparator != nullptr) {
+    m_actionSecureInputSeparator->setVisible(active);
+  }
+  setTrayIcon();
 }
 
 void MainWindow::closeEvent(QCloseEvent *event)
@@ -966,6 +1026,10 @@ void MainWindow::coreProcessStateChanged(CoreProcessState state)
 {
   updateStatus();
 
+  if (state == CoreProcessState::Stopping || state == CoreProcessState::Stopped) {
+    setSecureInputStatus(false);
+  }
+
   if (state == CoreProcessState::Started) {
     qDebug() << "recording that core has started";
     Settings::setValue(Settings::Gui::AutoStartCore, true);
@@ -1073,6 +1137,9 @@ void MainWindow::updateText()
   m_actionStartCore->setText(tr("&Start"));
   m_actionRestartCore->setText(tr("Rest&art"));
   m_actionStopCore->setText(tr("S&top"));
+  m_actionSecureInputStatus->setText(
+      m_secureInputActive ? tr("Keyboard input blocked by %1").arg(m_secureInputApp) : tr("Keyboard input blocked")
+  );
   //: %1 will be the replaced with the appname
   m_actionAbout->setText(tr("About %1...").arg(kAppName));
 

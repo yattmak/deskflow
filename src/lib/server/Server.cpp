@@ -138,6 +138,10 @@ Server::Server(ServerConfig &config, PrimaryClient *primaryClient, deskflow::Scr
     LOG_NOTE("default screen lock is on, locking cursor to screen");
     m_lockedToScreen = true;
   }
+
+#if defined(__APPLE__)
+  startSecureInputMonitoring();
+#endif
 }
 
 Server::~Server()
@@ -157,6 +161,9 @@ Server::~Server()
   m_events->removeHandler(PrimaryScreenFakeInputBegin, m_inputFilter);
   m_events->removeHandler(PrimaryScreenFakeInputEnd, m_inputFilter);
   m_events->removeHandler(Timer, this);
+#if defined(__APPLE__)
+  stopSecureInputMonitoring();
+#endif
   stopSwitch();
 
   try {
@@ -221,6 +228,46 @@ bool Server::setConfig(const ServerConfig &config)
 
   return true;
 }
+
+#if defined(__APPLE__)
+void Server::startSecureInputMonitoring()
+{
+  if (m_secureInputTimer != nullptr) {
+    return;
+  }
+
+  m_secureInputTimer = m_events->newTimer(2.0, nullptr);
+  m_events->addHandler(EventTypes::Timer, m_secureInputTimer, [this](const auto &) { checkSecureInput(); });
+}
+
+void Server::stopSecureInputMonitoring()
+{
+  if (m_secureInputTimer == nullptr) {
+    return;
+  }
+
+  m_events->removeHandler(EventTypes::Timer, m_secureInputTimer);
+  m_events->deleteTimer(m_secureInputTimer);
+  m_secureInputTimer = nullptr;
+  m_secureInputApp.clear();
+}
+
+void Server::checkSecureInput()
+{
+  const std::string app = m_primaryClient->getSecureInputApp();
+  if (app == m_secureInputApp) {
+    return;
+  }
+
+  if (!app.empty()) {
+    LOG_WARN("secure input active: application \"%s\" is blocking keyboard capture", app.c_str());
+  } else if (!m_secureInputApp.empty()) {
+    LOG_INFO("secure input inactive: keyboard capture restored");
+  }
+
+  m_secureInputApp = app;
+}
+#endif
 
 void Server::adoptClient(BaseClientProxy *client)
 {
