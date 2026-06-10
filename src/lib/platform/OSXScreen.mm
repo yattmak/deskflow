@@ -1073,8 +1073,17 @@ bool OSXScreen::onKey(CGEventRef event)
       KeyModifierMask mask;
       OSXKeyState::KeyIDs keys;
       std::string language;
-      KeyButton button = m_keyState->mapKeyFromEvent(keys, &mask, event, &language);
+      CGEventRef keyDownEvent = CGEventCreateCopy(event);
+      if (keyDownEvent == nullptr) {
+        return false;
+      }
+      CGEventSetType(keyDownEvent, kCGEventKeyDown);
+      CGEventSetIntegerValueField(keyDownEvent, kCGKeyboardEventAutorepeat, 0);
+
+      KeyButton button = m_keyState->mapKeyFromEvent(keys, &mask, keyDownEvent, &language);
+      CFRelease(keyDownEvent);
       if (button == 0) {
+        LOG_DEBUG1("event: unable to synthesize non-modifier flags-changed keycode=%d", virtualKey);
         return false;
       }
 
