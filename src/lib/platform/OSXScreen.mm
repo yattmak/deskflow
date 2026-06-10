@@ -61,6 +61,26 @@ static const double kCarbonLoopWaitTimeout = 10.0;
 int getSecureInputEventPID();
 std::string getProcessName(int pid);
 
+static bool isModifierFlagsChangedVirtualKey(uint32_t virtualKey)
+{
+  switch (virtualKey) {
+  case kVK_Shift:
+  case kVK_RightShift:
+  case kVK_Control:
+  case kVK_RightControl:
+  case kVK_Option:
+  case kVK_RightOption:
+  case kVK_Command:
+  case kVK_RightCommand:
+  case kVK_CapsLock:
+  case kVK_ANSI_KeypadClear:
+  case kVK_Function:
+    return true;
+  default:
+    return false;
+  }
+}
+
 // TODO: upgrade deprecated function usage in these functions.
 void setZeroSuppressionInterval();
 void avoidSupression();
@@ -1044,6 +1064,39 @@ bool OSXScreen::onKey(CGEventRef event)
 
   // Special handling to track state of modifiers
   if (eventKind == kCGEventFlagsChanged) {
+    if (!isModifierFlagsChangedVirtualKey(virtualKey)) {
+      LOG_DEBUG1(
+          "event: non-modifier flags-changed keycode=%d, flags=0x%llx; synthesizing key press", virtualKey,
+          static_cast<unsigned long long>(macMask)
+      );
+
+      KeyModifierMask mask;
+      OSXKeyState::KeyIDs keys;
+      std::string language;
+      KeyButton button = m_keyState->mapKeyFromEvent(keys, &mask, event, &language);
+      if (button == 0) {
+        return false;
+      }
+
+      KeyModifierMask sendMask = (mask & ~KeyModifierAltGr);
+      if ((mask & KeyModifierAltGr) != 0) {
+        sendMask &= ~KeyModifierSuper;
+      }
+      mask &= ~KeyModifierAltGr;
+
+      m_keyState->onKey(button, true, mask);
+      for (OSXKeyState::KeyIDs::const_iterator i = keys.begin(); i != keys.end(); ++i) {
+        m_keyState->sendKeyEvent(getEventTarget(), true, false, *i, sendMask, 1, button, language);
+      }
+
+      m_keyState->onKey(button, false, mask);
+      for (OSXKeyState::KeyIDs::const_iterator i = keys.begin(); i != keys.end(); ++i) {
+        m_keyState->sendKeyEvent(getEventTarget(), false, false, *i, sendMask, 1, button, language);
+      }
+
+      return true;
+    }
+
     // get old and new modifier state
     KeyModifierMask oldMask = getActiveModifiers();
     KeyModifierMask newMask = m_keyState->mapModifiersFromOSX(macMask);
