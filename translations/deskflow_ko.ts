@@ -433,6 +433,22 @@ A bound IP is now invalid, you may need to restart the server.</source>
 바인딩된 IP가 이제 유효하지 않습니다. 서버를 재시작해야 할 수 있습니다.</translation>
     </message>
     <message>
+        <source>Keyboard input is blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>an application</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>macOS Secure Input is preventing %1 from capturing character keys.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>%1 is starting...</source>
         <translation>%1 시작 중...</translation>
     </message>
@@ -512,6 +528,10 @@ A bound IP is now invalid, you may need to restart the server.</source>
     <message>
         <source>S&amp;top</source>
         <translation>중지(&amp;T)</translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>About %1...</source>

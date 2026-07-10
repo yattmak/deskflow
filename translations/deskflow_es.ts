@@ -451,6 +451,26 @@ Do you want to connect to the server?
         <translation type="unfinished">Cifrado deshabilitado</translation>
     </message>
     <message>
+        <source>Keyboard input is blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>an application</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>macOS Secure Input is preventing %1 from capturing character keys.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>No IP Detected</source>
         <translation type="unfinished">No se detectó ninguna IP</translation>
     </message>

@@ -433,6 +433,22 @@ A bound IP is now invalid, you may need to restart the server.</source>
 割り当て済みのIPアドレスが無効になりました。サーバーを再起動する必要があるかもしれません。</translation>
     </message>
     <message>
+        <source>Keyboard input is blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>an application</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>macOS Secure Input is preventing %1 from capturing character keys.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>%1 is starting...</source>
         <translation>%1 は起動処理中です…</translation>
     </message>
@@ -512,6 +528,10 @@ A bound IP is now invalid, you may need to restart the server.</source>
     <message>
         <source>S&amp;top</source>
         <translation>停止(&amp;T)</translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>About %1...</source>

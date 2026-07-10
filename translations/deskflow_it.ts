@@ -439,6 +439,26 @@ Vuoi connetterti al server?
         <translation>Crittografia disabilitata</translation>
     </message>
     <message>
+        <source>Keyboard input is blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>an application</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>macOS Secure Input is preventing %1 from capturing character keys.</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>No IP Detected</source>
         <translation>Nessun IP rilevato</translation>
     </message>
