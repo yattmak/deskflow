@@ -20,6 +20,23 @@
 using enum ComputerConfig::SwitchCorner;
 using enum ComputerConfig::Fix;
 
+namespace {
+void setupModifierCombo(QComboBox *combo, int target, const QString &inheritLabel = {})
+{
+  combo->clear();
+  if (!inheritLabel.isEmpty())
+    combo->addItem(inheritLabel, static_cast<int>(KeyboardModifier::DefaultMod));
+  const QStringList labels = {QObject::tr("Shift"), QObject::tr("Ctrl"),   QObject::tr("Alt"),
+                              QObject::tr("Meta"),  QObject::tr("Super"),  QObject::tr("Alt Gr"),
+                              QObject::tr("None"),  QObject::tr("Hangul"), QObject::tr("Hanja")};
+  for (int value = 0; value < labels.size(); value++)
+    combo->addItem(labels.at(value), value);
+  if (combo->findData(target) == -1)
+    combo->addItem(Computer::modifierTargetToOption(target), target);
+  combo->setCurrentIndex(combo->findData(target));
+}
+} // namespace
+
 ComputerSettingsDialog::~ComputerSettingsDialog() = default;
 
 ComputerSettingsDialog::ComputerSettingsDialog(QWidget *parent, Computer *computer, const ComputerList *computers)
@@ -44,12 +61,24 @@ ComputerSettingsDialog::ComputerSettingsDialog(QWidget *parent, Computer *comput
   for (int i = 0; i < m_computer->aliases().count(); i++)
     new QListWidgetItem(m_computer->aliases()[i], ui->listAliases);
 
-  ui->comboShift->setCurrentIndex(m_computer->modifier(static_cast<int>(KeyboardModifier::Shift)));
-  ui->comboCtrl->setCurrentIndex(m_computer->modifier(static_cast<int>(KeyboardModifier::Ctrl)));
-  ui->comboAlt->setCurrentIndex(m_computer->modifier(static_cast<int>(KeyboardModifier::Alt)));
-  ui->comboMeta->setCurrentIndex(m_computer->modifier(static_cast<int>(KeyboardModifier::Meta)));
-  ui->comboSuper->setCurrentIndex(m_computer->modifier(static_cast<int>(KeyboardModifier::Super)));
-  ui->comboAltGr->setCurrentIndex(m_computer->modifier(static_cast<int>(KeyboardModifier::AltGr)));
+  setupModifierCombo(ui->comboShift, m_computer->modifier(static_cast<int>(KeyboardModifier::Shift)));
+  setupModifierCombo(ui->comboCtrl, m_computer->modifier(static_cast<int>(KeyboardModifier::Ctrl)));
+  setupModifierCombo(ui->comboAlt, m_computer->modifier(static_cast<int>(KeyboardModifier::Alt)));
+  setupModifierCombo(ui->comboMeta, m_computer->modifier(static_cast<int>(KeyboardModifier::Meta)));
+  setupModifierCombo(ui->comboSuper, m_computer->modifier(static_cast<int>(KeyboardModifier::Super)));
+  setupModifierCombo(ui->comboAltGr, m_computer->modifier(static_cast<int>(KeyboardModifier::AltGr)));
+  setupModifierCombo(
+      ui->comboMetaLeft, m_computer->sideModifierOverride(KeyboardModifierSide::MetaLeft), tr("Inherit Meta")
+  );
+  setupModifierCombo(
+      ui->comboMetaRight, m_computer->sideModifierOverride(KeyboardModifierSide::MetaRight), tr("Inherit Meta")
+  );
+  setupModifierCombo(
+      ui->comboSuperLeft, m_computer->sideModifierOverride(KeyboardModifierSide::SuperLeft), tr("Inherit Super")
+  );
+  setupModifierCombo(
+      ui->comboSuperRight, m_computer->sideModifierOverride(KeyboardModifierSide::SuperRight), tr("Inherit Super")
+  );
 
   ui->chkDeadTopLeft->setChecked(m_computer->switchCorner(static_cast<int>(TopLeft)));
   ui->chkDeadTopRight->setChecked(m_computer->switchCorner(static_cast<int>(TopRight)));
@@ -104,12 +133,16 @@ void ComputerSettingsDialog::accept()
       m_computer->addAlias(alias);
   }
 
-  m_computer->setModifier(KeyboardModifier::Shift, ui->comboShift->currentIndex());
-  m_computer->setModifier(KeyboardModifier::Ctrl, ui->comboCtrl->currentIndex());
-  m_computer->setModifier(KeyboardModifier::Alt, ui->comboAlt->currentIndex());
-  m_computer->setModifier(KeyboardModifier::Meta, ui->comboMeta->currentIndex());
-  m_computer->setModifier(KeyboardModifier::Super, ui->comboSuper->currentIndex());
-  m_computer->setModifier(KeyboardModifier::AltGr, ui->comboAltGr->currentIndex());
+  m_computer->setModifier(KeyboardModifier::Shift, ui->comboShift->currentData().toInt());
+  m_computer->setModifier(KeyboardModifier::Ctrl, ui->comboCtrl->currentData().toInt());
+  m_computer->setModifier(KeyboardModifier::Alt, ui->comboAlt->currentData().toInt());
+  m_computer->setModifier(KeyboardModifier::Meta, ui->comboMeta->currentData().toInt());
+  m_computer->setModifier(KeyboardModifier::Super, ui->comboSuper->currentData().toInt());
+  m_computer->setModifier(KeyboardModifier::AltGr, ui->comboAltGr->currentData().toInt());
+  m_computer->setSideModifier(KeyboardModifierSide::MetaLeft, ui->comboMetaLeft->currentData().toInt());
+  m_computer->setSideModifier(KeyboardModifierSide::MetaRight, ui->comboMetaRight->currentData().toInt());
+  m_computer->setSideModifier(KeyboardModifierSide::SuperLeft, ui->comboSuperLeft->currentData().toInt());
+  m_computer->setSideModifier(KeyboardModifierSide::SuperRight, ui->comboSuperRight->currentData().toInt());
 
   m_computer->setSwitchCorner(TopLeft, ui->chkDeadTopLeft->isChecked());
   m_computer->setSwitchCorner(TopRight, ui->chkDeadTopRight->isChecked());

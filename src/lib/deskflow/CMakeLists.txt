@@ -24,6 +24,13 @@ elseif(UNIX)
   )
 endif()
 
+if(APPLE)
+  list(APPEND PLATFORM_CODE
+    unix/OSXInputSource.cpp
+    unix/OSXInputSource.h
+  )
+endif()
+
 add_library(${lib_name} STATIC ${PLATFORM_CODE}
   App.cpp
   App.h

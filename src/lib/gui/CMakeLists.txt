@@ -28,6 +28,8 @@ add_library(${target} STATIC
   MainWindow.ui
   Messages.cpp
   Messages.h
+  SecureInputState.cpp
+  SecureInputState.h
   StyleUtils.h
   TlsUtility.cpp
   TlsUtility.h

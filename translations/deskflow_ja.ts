@@ -309,6 +309,14 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished">削除(&amp;R)</translation>
     </message>
     <message>
+        <source>Inherit Meta</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Inherit Super</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Computer name is empty</source>
         <translation type="unfinished">コンピューター名が空です</translation>
     </message>
@@ -323,6 +331,22 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>The computer name cannot be the same as an alias. Please either remove the alias or change the computer name.</source>
         <translation type="unfinished">コンピューター名をエイリアスと同じにすることはできません。エイリアスを削除するか、コンピューター名を変更してください。</translation>
+    </message>
+    <message>
+        <source>Meta Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Meta Right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Super Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Super Right</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -569,6 +593,22 @@ Do you want to connect to the server?
     <message>
         <source>Disconnect</source>
         <translation>切断</translation>
+    </message>
+    <message>
+        <source>an application</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input is blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>macOS Secure Input is preventing %1 from capturing character keys.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>&lt;p&gt;Failed to connect to the server &apos;%1&apos;.&lt;/p&gt;&lt;p&gt;A Client with your name is already connected to the server.&lt;/p&gt;Please ensure that you&apos;re using a unique name and that only a single instance of the client process is running.&lt;/p&gt;</source>
@@ -912,6 +952,14 @@ Additionally, check you are able to %1 the server config file: %2</source>
         <translation type="unfinished">Meta</translation>
     </message>
     <message>
+        <source>Hangul</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hanja</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>None</source>
         <translation type="unfinished">なし</translation>
     </message>
@@ -922,6 +970,10 @@ Additionally, check you are able to %1 the server config file: %2</source>
     <message>
         <source>Super</source>
         <translation type="unfinished">Super</translation>
+    </message>
+    <message>
+        <source>Alt Gr</source>
+        <translation type="unfinished">Alt Gr</translation>
     </message>
 </context>
 <context>

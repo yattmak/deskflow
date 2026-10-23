@@ -25,6 +25,10 @@ private Q_SLOTS:
   void checkCleanComputerName();
   void checkCleanComputerName_LongName();
   void checkClearState();
+  void modifierProtocolValues();
+  void migrateModifierArrays_data();
+  void migrateModifierArrays();
+  void migrateModifiersPreservesNewSettings();
 
 private:
   inline static const QString m_settingsPathTemp = QStringLiteral("tmp/test");

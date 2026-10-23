@@ -123,6 +123,13 @@ MainWindow::MainWindow()
   m_actionShowHelp->setMenuRole(QAction::NoRole);
   m_actionShowHelp->setShortcut(QKeySequence::HelpContents);
 
+#ifdef Q_OS_MACOS
+  m_actionSecureInputStatus = new QAction(this);
+  m_actionSecureInputStatus->setEnabled(false);
+  m_actionSecureInputStatus->setVisible(false);
+  m_actionSecureInputStatus->setMenuRole(QAction::NoRole);
+#endif
+
   // Setup the Instance Checking
   // In case of a previous crash remove first
   QLocalServer::removeServer(m_guiSocketName);
@@ -249,6 +256,14 @@ void MainWindow::connectSlots()
       &m_coreProcess, &CoreProcess::processStateChanged, this, &MainWindow::coreProcessStateChanged,
       Qt::QueuedConnection
   );
+#ifdef Q_OS_MACOS
+  // Clear immediately, before any buffered output or queued UI state changes can revive an old warning.
+  connect(&m_coreProcess, &CoreProcess::processStateChanged, this, [this](ProcessState state) {
+    if (state != ProcessState::Started && state != ProcessState::Starting) {
+      resetSecureInputStatus();
+    }
+  });
+#endif
   connect(&m_coreProcess, &CoreProcess::connectionStateChanged, this, &MainWindow::coreConnectionStateChanged);
   connect(&m_coreProcess, &CoreProcess::secureSocket, this, &MainWindow::secureSocket);
   connect(
@@ -429,6 +444,9 @@ void MainWindow::clearSettings()
   qDebug() << "clearing settings";
 
   m_networkMonitor->stopMonitoring();
+#ifdef Q_OS_MACOS
+  resetSecureInputStatus();
+#endif
 
   disconnect(&m_coreProcess, nullptr, this, nullptr);
   disconnect(&m_versionChecker, nullptr, this, nullptr);
@@ -514,6 +532,11 @@ void MainWindow::coreModeToggled(bool checked)
   if (m_coreProcess.isStarted() && m_coreProcess.mode() != mode)
     m_coreProcess.stop();
   m_coreProcess.setMode(mode);
+#ifdef Q_OS_MACOS
+  if (mode != CoreMode::Server) {
+    resetSecureInputStatus();
+  }
+#endif
 
   Settings::setValue(Settings::Core::CoreMode, mode);
   Settings::save();
@@ -684,6 +707,11 @@ void MainWindow::createMenuBar()
 void MainWindow::setupTrayIcon()
 {
   auto trayMenu = new QMenu(this);
+#ifdef Q_OS_MACOS
+  trayMenu->addAction(m_actionSecureInputStatus);
+  m_actionSecureInputSeparator = trayMenu->addSeparator();
+  m_actionSecureInputSeparator->setVisible(false);
+#endif
   trayMenu->addActions(
       {m_actionStartCore, m_actionRestartCore, m_actionStopCore, m_actionMinimize, m_actionRestore, m_actionTrayQuit}
   );
@@ -733,6 +761,18 @@ void MainWindow::setTrayIcon()
 {
   static const auto fallbackPath = QStringLiteral(":/icons/%1-%2/apps/64/%3");
 
+#ifdef Q_OS_MACOS
+  if (m_secureInputState.isActive()) {
+    const auto warningIcon = QStringLiteral("dialog-warning");
+    const auto warningPath = QStringLiteral(":/icons/%1-%2/status/64/%3").arg(kAppId, iconMode(), warningIcon);
+    m_trayIcon->setIcon(QIcon::fromTheme(warningIcon, QIcon(warningPath)));
+    const auto app = m_secureInputState.app().isEmpty() ? tr("an application") : m_secureInputState.app();
+    m_trayIcon->setToolTip(tr("Keyboard input is blocked by %1").arg(app));
+    return;
+  }
+  m_trayIcon->setToolTip(kAppName);
+#endif
+
   QString themeIcon = kRevFqdnName;
   if (!Settings::value(Settings::Gui::SymbolicTrayIcon).toBool()) {
     if (deskflow::platform::isMac())
@@ -763,7 +803,44 @@ void MainWindow::setTrayIcon()
 void MainWindow::handleLogLine(const QString &line)
 {
   m_logDock->appendLine(line);
+#ifdef Q_OS_MACOS
+  if (m_coreProcess.mode() == CoreMode::Server &&
+      SecureInputState::acceptsUpdates(m_coreProcess.processState(), m_coreProcess.connectionState()) &&
+      m_secureInputState.updateFromLogLine(line)) {
+    updateSecureInputStatus();
+  }
+#endif
 }
+
+#ifdef Q_OS_MACOS
+void MainWindow::updateSecureInputStatus()
+{
+  const bool active = m_secureInputState.isActive();
+  const auto app = m_secureInputState.app().isEmpty() ? tr("an application") : m_secureInputState.app();
+  // App names are plain text, not QAction mnemonic markup.
+  auto menuApp = app;
+  menuApp.replace(QLatin1Char('&'), QStringLiteral("&&"));
+  m_actionSecureInputStatus->setText(active ? tr("Keyboard input blocked by %1").arg(menuApp) : QString());
+  m_actionSecureInputStatus->setToolTip(
+      active ? tr("macOS Secure Input is preventing %1 from capturing character keys.").arg(kAppName) : QString()
+  );
+  m_actionSecureInputStatus->setVisible(active);
+  if (m_actionSecureInputSeparator != nullptr) {
+    m_actionSecureInputSeparator->setVisible(active);
+  }
+  setTrayIcon();
+  if (active) {
+    m_actionSecureInputStatus->setIcon(m_trayIcon->icon());
+  }
+}
+
+void MainWindow::resetSecureInputStatus()
+{
+  if (m_secureInputState.reset()) {
+    updateSecureInputStatus();
+  }
+}
+#endif
 
 void MainWindow::handleUnrecognisedClient(const QString &clientName)
 {
@@ -990,6 +1067,12 @@ void MainWindow::coreConnectionStateChanged(ConnectionState state)
 
   updateStatus();
 
+#ifdef Q_OS_MACOS
+  if (state == ConnectionState::Disconnected) {
+    resetSecureInputStatus();
+  }
+#endif
+
   // always assume connection is not secure when connection changes
   // to anything except connected. the only way the padlock shows is
   // when the correct TLS version string is detected.
@@ -1023,6 +1106,11 @@ void MainWindow::changeEvent(QEvent *e)
     updateIconTheme();
     setWindowIcon(QIcon::fromTheme(kRevFqdnName));
     setTrayIcon();
+#ifdef Q_OS_MACOS
+    if (m_secureInputState.isActive()) {
+      m_actionSecureInputStatus->setIcon(m_trayIcon->icon());
+    }
+#endif
   } else if (e->type() == QEvent::LanguageChange) {
     ui->retranslateUi(this);
     updateModeControlLabels();
@@ -1063,6 +1151,9 @@ void MainWindow::updateText()
   m_actionStartCore->setText(tr("&Start"));
   m_actionRestartCore->setText(tr("Rest&art"));
   m_actionStopCore->setText(tr("S&top"));
+#ifdef Q_OS_MACOS
+  updateSecureInputStatus();
+#endif
   //: %1 will be the replaced with the appname
   m_actionAbout->setText(tr("About %1...").arg(kAppName));
 

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "client/ModifierTranslation.h"
 #include "common/Enums.h"
 #include "deskflow/ClipboardChunk.h"
 #include "deskflow/ClipboardTypes.h"
@@ -80,9 +81,7 @@ private:
   void resetKeepAliveAlarm();
   void setKeepAliveRate(double);
 
-  // modifier key translation
-  KeyID translateKey(KeyID) const;
-  KeyModifierMask translateModifierMask(KeyModifierMask) const;
+  void releaseModifierKeys();
 
   // event handlers
   void handleData();
@@ -125,7 +124,7 @@ private:
 
   bool m_ignoreMouse = false;
 
-  KeyModifierID m_modifierTranslationTable[kKeyModifierIDLast];
+  deskflow::ModifierTranslation m_modifierTranslation;
 
   double m_keepAliveAlarm = 0.0;
   EventQueueTimer *m_keepAliveAlarmTimer = nullptr;

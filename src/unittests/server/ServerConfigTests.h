@@ -4,12 +4,17 @@
  * SPDX-License-Identifier: GPL-2.0-only WITH LicenseRef-OpenSSL-Exception
  */
 
+#include "arch/Arch.h"
+
+#include <QTemporaryDir>
 #include <QTest>
 
 class ServerConfigTests : public QObject
 {
   Q_OBJECT
 private Q_SLOTS:
+  void initTestCase();
+  void cleanupTestCase();
   void equalityCheck();
   void equalityCheck_diff_options();
   void equalityCheck_diff_alias();
@@ -18,4 +23,17 @@ private Q_SLOTS:
   void equalityCheck_diff_neighbours1();
   void equalityCheck_diff_neighbours2();
   void equalityCheck_diff_neighbours3();
+  void modifierOptionsFromSettings();
+  void modifierTargets_data();
+  void modifierTargets();
+  void invalidModifierTarget();
+  void legacyScreenModifierOptions();
+  void legacyScreenSectionTermination_data();
+  void legacyScreenSectionTermination();
+
+private:
+  // Full config parsing resolves its listen address through the ARCH singleton.
+  Arch m_arch;
+  QTemporaryDir m_settingsDirectory;
+  QString m_previousSettingsFile;
 };

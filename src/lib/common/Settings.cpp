@@ -117,7 +117,8 @@ void Settings::upgradeSettings()
   for (const auto &key : screenKeys) {
     auto newKey = key;
     newKey.replace("screen_", "computer_");
-    m_settings->setValue(newKey, m_settings->value(key));
+    if (!m_settings->contains(newKey))
+      m_settings->setValue(newKey, m_settings->value(key));
   }
   for (const auto [oldKey, newKey] : m_upgradedMap.asKeyValueRange()) {
     if (m_settings->contains(newKey) || !m_settings->contains(oldKey))
@@ -138,7 +139,7 @@ void Settings::upgradeSettings()
   m_settings->endArray();
   m_settings->endGroup();
 
-  for (int i = 1; i <= screenArraySize; i++) {
+  for (int i = 0; i < screenArraySize; i++) {
     m_settings->beginGroup("internalConfig");
     m_settings->beginReadArray("screens");
     m_settings->setArrayIndex(i);
@@ -175,14 +176,24 @@ void Settings::upgradeSettings()
     }
 
     QList<QString> modifierTemp;
+    bool legacyCustomModifiers = false;
     if (m_settings->contains("modifierArray/size")) {
-      int modifierArraySize = m_settings->beginReadArray("modifierArray");
+      const int modifierArraySize = m_settings->beginReadArray("modifierArray");
+      // Only the ten-slot custom format is unambiguous. Six/seven-slot
+      // upstream arrays retain AltGr=5 and None=6.
+      legacyCustomModifiers = modifierArraySize == 10;
       for (int j = 0; j < modifierArraySize; j++) {
         m_settings->setArrayIndex(j);
-        auto modifier = m_settings->value("modifier").toInt();
-        modifierTemp.append(
-            modifier == -1 ? valueToKeyboardModifierOption(j) : valueToKeyboardModifierOption(modifier)
-        );
+        const int modifier = m_settings->value("modifier", -1).toInt();
+        if (legacyCustomModifiers && modifier == -1 && j >= 6) {
+          modifierTemp.append(QString()); // inherit the common Meta/Super mapping
+        } else if (legacyCustomModifiers && (modifier == 5 || (modifier == -1 && j == 5))) {
+          modifierTemp.append(kModifierNameNone);
+        } else if (legacyCustomModifiers && modifier == 6) {
+          modifierTemp.append(kModifierNameHangul);
+        } else {
+          modifierTemp.append(valueToKeyboardModifierOption(modifier == -1 ? j : modifier));
+        }
       }
       m_settings->endArray();
     }
@@ -199,6 +210,10 @@ void Settings::upgradeSettings()
     }
     m_settings->endArray();
     m_settings->endGroup();
+
+    // Missing optional arrays use their defaults rather than indexing past the end.
+    fixTemp.resize(4);
+    cornerTemp.resize(4);
 
     // Write Settings
     if (!m_settings->contains(Settings::Computer::Name.arg(name)))
@@ -221,18 +236,26 @@ void Settings::upgradeSettings()
       m_settings->setValue(Settings::Computer::SwitchCornerBottomLeft.arg(name), cornerTemp.at(2));
     if (!m_settings->contains(Settings::Computer::SwitchCornerBottomRight.arg(name)))
       m_settings->setValue(Settings::Computer::SwitchCornerBottomRight.arg(name), cornerTemp.at(3));
-    if (!m_settings->contains(Settings::Computer::ModifierShift.arg(name)))
-      m_settings->setValue(Settings::Computer::ModifierShift.arg(name), modifierTemp.at(0));
-    if (!m_settings->contains(Settings::Computer::ModifierCtrl.arg(name)))
-      m_settings->setValue(Settings::Computer::ModifierCtrl.arg(name), modifierTemp.at(1));
-    if (!m_settings->contains(Settings::Computer::ModifierAlt.arg(name)))
-      m_settings->setValue(Settings::Computer::ModifierAlt.arg(name), modifierTemp.at(2));
-    if (!m_settings->contains(Settings::Computer::ModifierMeta.arg(name)))
-      m_settings->setValue(Settings::Computer::ModifierMeta.arg(name), modifierTemp.at(3));
-    if (!m_settings->contains(Settings::Computer::ModifierSuper.arg(name)))
-      m_settings->setValue(Settings::Computer::ModifierSuper.arg(name), modifierTemp.at(4));
-    if (!m_settings->contains(Settings::Computer::ModifierAltGr.arg(name)))
-      m_settings->setValue(Settings::Computer::ModifierAltGr.arg(name), modifierTemp.at(5));
+    const QStringList modifierKeys = {Settings::Computer::ModifierShift, Settings::Computer::ModifierCtrl,
+                                      Settings::Computer::ModifierAlt,   Settings::Computer::ModifierMeta,
+                                      Settings::Computer::ModifierSuper, Settings::Computer::ModifierAltGr};
+    for (int j = 0; j < modifierKeys.size(); j++) {
+      const auto key = modifierKeys.at(j).arg(name);
+      // Slot 5 in the old custom array is the None pseudo-source, not AltGr.
+      if (!m_settings->contains(key) && j < modifierTemp.size() && !(legacyCustomModifiers && j == 5))
+        m_settings->setValue(key, modifierTemp.at(j));
+    }
+    if (legacyCustomModifiers) {
+      const QStringList sideKeys = {
+          Settings::Computer::ModifierMetaLeft, Settings::Computer::ModifierMetaRight,
+          Settings::Computer::ModifierSuperLeft, Settings::Computer::ModifierSuperRight
+      };
+      for (int j = 0; j < sideKeys.size(); j++) {
+        const auto key = sideKeys.at(j).arg(name);
+        if (!m_settings->contains(key))
+          m_settings->setValue(key, modifierTemp.at(j + 6));
+      }
+    }
     if (!m_settings->contains(Settings::Computer::Aliases.arg(name))) {
       m_settings->setValue(Settings::Computer::Aliases.arg(name), aliases);
     }
@@ -515,6 +538,9 @@ void Settings::removeUnknownComputers(const QStringList &knownComputers)
 
 QVariant Settings::computerDefaults(const QString &key)
 {
+  if (key == "modifierMetaLeft" || key == "modifierMetaRight" || key == "modifierSuperLeft" ||
+      key == "modifierSuperRight")
+    return QString(); // an unset side override inherits the common mapping
   if (key.contains(QStringLiteral("halfDuplex")) || key.contains("xtestIsXineramaUnaware") || key.contains("X11") ||
       key.contains("Left") || key.contains("Right"))
     return false;

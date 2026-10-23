@@ -309,6 +309,14 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished">삭제(&amp;R)</translation>
     </message>
     <message>
+        <source>Inherit Meta</source>
+        <translation>공통 Meta 설정 사용</translation>
+    </message>
+    <message>
+        <source>Inherit Super</source>
+        <translation>공통 Super 설정 사용</translation>
+    </message>
+    <message>
         <source>Computer name is empty</source>
         <translation type="unfinished">컴퓨터 이름이 비어 있습니다.</translation>
     </message>
@@ -323,6 +331,22 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>The computer name cannot be the same as an alias. Please either remove the alias or change the computer name.</source>
         <translation type="unfinished">컴퓨터 이름은 별칭과 같을 수 없습니다. 별칭을 제거하거나 컴퓨터 이름을 변경하십시오.</translation>
+    </message>
+    <message>
+        <source>Meta Left</source>
+        <translation>왼쪽 Meta</translation>
+    </message>
+    <message>
+        <source>Meta Right</source>
+        <translation>오른쪽 Meta</translation>
+    </message>
+    <message>
+        <source>Super Left</source>
+        <translation>왼쪽 Super</translation>
+    </message>
+    <message>
+        <source>Super Right</source>
+        <translation>오른쪽 Super</translation>
     </message>
 </context>
 <context>
@@ -569,6 +593,22 @@ Do you want to connect to the server?
     <message>
         <source>Disconnect</source>
         <translation>연결 해제</translation>
+    </message>
+    <message>
+        <source>an application</source>
+        <translation>앱</translation>
+    </message>
+    <message>
+        <source>Keyboard input is blocked by %1</source>
+        <translation>%1에서 키보드 입력을 차단하고 있습니다</translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked by %1</source>
+        <translation>%1에서 키보드 입력 차단 중</translation>
+    </message>
+    <message>
+        <source>macOS Secure Input is preventing %1 from capturing character keys.</source>
+        <translation>macOS 보안 입력이 %1의 문자 키 입력 감지를 차단하고 있습니다.</translation>
     </message>
     <message>
         <source>&lt;p&gt;Failed to connect to the server &apos;%1&apos;.&lt;/p&gt;&lt;p&gt;A Client with your name is already connected to the server.&lt;/p&gt;Please ensure that you&apos;re using a unique name and that only a single instance of the client process is running.&lt;/p&gt;</source>
@@ -910,6 +950,14 @@ Additionally, check you are able to %1 the server config file: %2</source>
         <translation type="unfinished">Meta</translation>
     </message>
     <message>
+        <source>Hangul</source>
+        <translation>한/영 전환</translation>
+    </message>
+    <message>
+        <source>Hanja</source>
+        <translation>한자 변환</translation>
+    </message>
+    <message>
         <source>None</source>
         <translation type="unfinished">없음</translation>
     </message>
@@ -920,6 +968,10 @@ Additionally, check you are able to %1 the server config file: %2</source>
     <message>
         <source>Super</source>
         <translation type="unfinished">Super</translation>
+    </message>
+    <message>
+        <source>Alt Gr</source>
+        <translation type="unfinished">Alt Gr</translation>
     </message>
 </context>
 <context>

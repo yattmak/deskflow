@@ -182,6 +182,36 @@ Each computer will have a section where its configuration will be stored, if the
 | xtestIsXineramaUnaware | `true` or `false` | This option works around a bug in the XTest extension when used in combination with Xinerama. It affects X11 clients only. Not all versions of the XTest extension are aware of the Xinerama extension. As a result, they do not move the mouse correctly when using multiple Xinerama screens. This option is currently ''true'' by default. If you know your XTest extension is Xinerama aware then set this option to ''false''.|
 | weakX11Focus           | `true` or `false` | This X11 Client will not gain focus until an input event has been processed its any of its screens |
 
+#### Custom left/right modifier mappings
+
+This fork also accepts `hangul`, `hanja`, and supported key names as modifier
+targets. `haen` and `kc_haen` are aliases for `hangul`. Lock-key targets
+(`CapsLock`, `NumLock`, `ScrollLock`) are not supported.
+
+| Option | Default | Description |
+|:-------|:--------|:------------|
+| modifierMetaLeft | empty | Override the left Meta source; empty inherits `modifierMeta`. |
+| modifierMetaRight | empty | Override the right Meta source; empty inherits `modifierMeta`. |
+| modifierSuperLeft | empty | Override the left Super source; empty inherits `modifierSuper`. |
+| modifierSuperRight | empty | Override the right Super source; empty inherits `modifierSuper`. |
+
+For example, to use left Command as Control and right Command as Hangul on a
+client named `foo` (macOS Command is the server's Super source):
+
+```ini
+[computer_foo]
+modifierSuper=ctrl
+modifierSuperRight=hangul
+```
+
+Use the custom build on both the server and affected clients. Stock clients do
+not implement these options and may interpret non-modifier targets incorrectly.
+A modifier held while crossing between computers may need to be released and
+pressed again: the enter message does not identify its left/right side. Existing
+ten-slot custom GUI mappings migrate to these settings automatically; back up
+settings before the first run. See [macOS customization notes](dev/MacCustomizations.md)
+for migration, IME, Secure Input and maintenance details.
+
 ### InternalConfig
 
 This section contains options used when in server mode it will begin with `[internalConfig]`

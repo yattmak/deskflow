@@ -309,6 +309,14 @@ p, li { white-space: pre-wrap; }
         <translation type="unfinished">&amp;Rimuovi</translation>
     </message>
     <message>
+        <source>Inherit Meta</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Inherit Super</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Computer name is empty</source>
         <translation type="unfinished">Il nome del computer è vuoto.</translation>
     </message>
@@ -323,6 +331,22 @@ p, li { white-space: pre-wrap; }
     <message>
         <source>The computer name cannot be the same as an alias. Please either remove the alias or change the computer name.</source>
         <translation type="unfinished">Il nome del computer non può coincidere con un alias. Rimuovere l&apos;alias o modificare il nome del computer.</translation>
+    </message>
+    <message>
+        <source>Meta Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Meta Right</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Super Left</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Super Right</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -597,6 +621,22 @@ Vuoi connetterti al server?
     <message>
         <source>Disconnect</source>
         <translation>Disconnetti</translation>
+    </message>
+    <message>
+        <source>an application</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input is blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Keyboard input blocked by %1</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>macOS Secure Input is preventing %1 from capturing character keys.</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>%1 Connection Error</source>
@@ -910,6 +950,14 @@ Inoltre, verifica di poter %1 il file di configurazione del server: %2</translat
         <translation type="unfinished">Meta</translation>
     </message>
     <message>
+        <source>Hangul</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>Hanja</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>None</source>
         <translation type="unfinished">Nessuno</translation>
     </message>
@@ -920,6 +968,10 @@ Inoltre, verifica di poter %1 il file di configurazione del server: %2</translat
     <message>
         <source>Super</source>
         <translation type="unfinished">Super</translation>
+    </message>
+    <message>
+        <source>Alt Gr</source>
+        <translation type="unfinished">Alt Gr</translation>
     </message>
 </context>
 <context>

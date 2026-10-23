@@ -415,6 +415,42 @@
             </item>
            </widget>
           </item>
+          <item row="10" column="0">
+           <widget class="QLabel" name="labelMetaLeft">
+            <property name="text"><string>Meta Left</string></property>
+            <property name="buddy"><cstring>comboMetaLeft</cstring></property>
+           </widget>
+          </item>
+          <item row="10" column="1">
+           <widget class="QComboBox" name="comboMetaLeft"/>
+          </item>
+          <item row="11" column="0">
+           <widget class="QLabel" name="labelMetaRight">
+            <property name="text"><string>Meta Right</string></property>
+            <property name="buddy"><cstring>comboMetaRight</cstring></property>
+           </widget>
+          </item>
+          <item row="11" column="1">
+           <widget class="QComboBox" name="comboMetaRight"/>
+          </item>
+          <item row="12" column="0">
+           <widget class="QLabel" name="labelSuperLeft">
+            <property name="text"><string>Super Left</string></property>
+            <property name="buddy"><cstring>comboSuperLeft</cstring></property>
+           </widget>
+          </item>
+          <item row="12" column="1">
+           <widget class="QComboBox" name="comboSuperLeft"/>
+          </item>
+          <item row="13" column="0">
+           <widget class="QLabel" name="labelSuperRight">
+            <property name="text"><string>Super Right</string></property>
+            <property name="buddy"><cstring>comboSuperRight</cstring></property>
+           </widget>
+          </item>
+          <item row="13" column="1">
+           <widget class="QComboBox" name="comboSuperRight"/>
+          </item>
          </layout>
         </widget>
        </item>
@@ -757,6 +793,10 @@
   <tabstop>comboSuper</tabstop>
   <tabstop>comboAltGr</tabstop>
   <tabstop>comboAlt</tabstop>
+  <tabstop>comboMetaLeft</tabstop>
+  <tabstop>comboMetaRight</tabstop>
+  <tabstop>comboSuperLeft</tabstop>
+  <tabstop>comboSuperRight</tabstop>
   <tabstop>chkDeadTopLeft</tabstop>
   <tabstop>chkDeadTopRight</tabstop>
   <tabstop>sbSwitchCornerSize</tabstop>

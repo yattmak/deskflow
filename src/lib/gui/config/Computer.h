@@ -32,13 +32,13 @@ class Computer : public ComputerConfig
   friend QDataStream &operator<<(QDataStream &outStream, const Computer &computer)
   {
     return outStream << computer.name() << computer.switchCornerSize() << computer.aliases() << computer.modifiers()
-                     << computer.switchCorners() << computer.fixes() << computer.isServer();
+                     << computer.switchCorners() << computer.fixes() << computer.isServer() << computer.m_SideModifiers;
   }
 
   friend QDataStream &operator>>(QDataStream &inStream, Computer &computer)
   {
     return inStream >> computer.m_Name >> computer.m_SwitchCornerSize >> computer.m_Aliases >> computer.m_Modifiers >>
-           computer.m_SwitchCorners >> computer.m_Fixes >> computer.m_isServer;
+           computer.m_SwitchCorners >> computer.m_Fixes >> computer.m_isServer >> computer.m_SideModifiers;
   }
 
 public:
@@ -69,6 +69,24 @@ public:
   {
     return m_Modifiers;
   }
+  [[nodiscard]] int sideModifierOverride(KeyboardModifierSide side) const
+  {
+    return m_SideModifiers.at(static_cast<int>(side));
+  }
+  [[nodiscard]] int sideModifier(KeyboardModifierSide side) const
+  {
+    const int target = sideModifierOverride(side);
+    if (target != static_cast<int>(KeyboardModifier::DefaultMod))
+      return target;
+    const auto common = side == KeyboardModifierSide::MetaLeft || side == KeyboardModifierSide::MetaRight
+                            ? KeyboardModifier::Meta
+                            : KeyboardModifier::Super;
+    return modifier(static_cast<int>(common));
+  }
+
+  // Model values are KeyboardModifier ordinals or explicit KeyIDs, not wire modifier IDs.
+  static int modifierTargetFromOption(const QString &option);
+  static QString modifierTargetToOption(int target);
   [[nodiscard]] bool switchCorner(int c) const
   {
     return m_SwitchCorners[c];
@@ -123,6 +141,10 @@ protected:
   {
     m_Modifiers[static_cast<int8_t>(m)] = n;
   }
+  void setSideModifier(KeyboardModifierSide side, int target)
+  {
+    m_SideModifiers[static_cast<int>(side)] = target;
+  }
   QList<int> &modifiers()
   {
     return m_Modifiers;
@@ -161,6 +183,7 @@ private:
   QString m_Name = {};
   QStringList m_Aliases = {};
   QList<int> m_Modifiers = {0, 1, 2, 3, 4, 5, 6};
+  QList<int> m_SideModifiers = {-1, -1, -1, -1};
   QList<bool> m_SwitchCorners = {false, false, false, false};
   int m_SwitchCornerSize = 0;
   QList<bool> m_Fixes{false, false, false, false};

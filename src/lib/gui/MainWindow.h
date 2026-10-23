@@ -23,6 +23,7 @@
 
 #ifdef Q_OS_MACOS
 #include "gui/OSXHelpers.h"
+#include "gui/SecureInputState.h"
 #endif
 
 class QAction;
@@ -116,6 +117,10 @@ private:
   void setupTrayIcon();
   void applyConfig();
   void setTrayIcon();
+#ifdef Q_OS_MACOS
+  void updateSecureInputStatus();
+  void resetSecureInputStatus();
+#endif
   void handleUnrecognisedClient(const QString &clientName);
   void handleConnectionRefused(deskflow::core::ConnectionRefusal reason);
   void handlePeerFingerprint(const QString &fingerprint);
@@ -202,6 +207,12 @@ private:
   QAction *m_actionRestartCore = nullptr;
   QAction *m_actionStopCore = nullptr;
   QAction *m_actionShowHelp = nullptr;
+
+#ifdef Q_OS_MACOS
+  QAction *m_actionSecureInputStatus = nullptr;
+  QAction *m_actionSecureInputSeparator = nullptr;
+  deskflow::gui::SecureInputState m_secureInputState;
+#endif
 
   // Network monitoring
   NetworkMonitor *m_networkMonitor = nullptr;

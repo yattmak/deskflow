@@ -324,6 +324,13 @@ private:
   void handleKeyboardBroadcastEvent(const Event &event);
   void handleLockCursorToComputerEvent(const Event &event);
 
+#if defined(__APPLE__)
+  void startSecureInputMonitoring();
+  void stopSecureInputMonitoring();
+  void checkSecureInput();
+  void sendSecureInputStatus() const;
+#endif
+
   // event processing
   void onClipboardChanged(const BaseClientProxy *sender, ClipboardID id, uint32_t seqNum);
   void onScreensaver(bool activated);
@@ -394,6 +401,11 @@ private:
 
   // delay for double-tap computer switching
   double m_switchTwoTapDelay = 0.0;
+
+#if defined(__APPLE__)
+  EventQueueTimer *m_secureInputTimer = nullptr;
+  std::string m_secureInputApp;
+#endif
 
   // server computer
   deskflow::Computer *m_computer;

@@ -23,6 +23,40 @@
 
 using namespace deskflow::string;
 
+namespace {
+struct ModifierOption
+{
+  const char *name;
+  const QString &setting;
+  OptionID id;
+};
+
+const ModifierOption modifierOptions[] = {
+    {"shift", Settings::Computer::ModifierShift, kOptionModifierMapForShift},
+    {"ctrl", Settings::Computer::ModifierCtrl, kOptionModifierMapForControl},
+    {"alt", Settings::Computer::ModifierAlt, kOptionModifierMapForAlt},
+    {"meta", Settings::Computer::ModifierMeta, kOptionModifierMapForMeta},
+    {"super", Settings::Computer::ModifierSuper, kOptionModifierMapForSuper},
+    {"altgr", Settings::Computer::ModifierAltGr, kOptionModifierMapForAltGr},
+    {"metaLeft", Settings::Computer::ModifierMetaLeft, kOptionModifierMapForMetaLeft},
+    {"metaRight", Settings::Computer::ModifierMetaRight, kOptionModifierMapForMetaRight},
+    {"superLeft", Settings::Computer::ModifierSuperLeft, kOptionModifierMapForSuperLeft},
+    {"superRight", Settings::Computer::ModifierSuperRight, kOptionModifierMapForSuperRight}
+};
+
+OptionValue modifierTargetProtocolValue(const QString &target)
+{
+  const auto modifier = modifierIDValueFromString(target);
+  if (modifier != -1)
+    return modifier;
+  KeyID key = kKeyNone;
+  if (deskflow::KeyMap::parseKey(target.toStdString(), key) && key >= kKeyModifierIDLast &&
+      !isUnsupportedModifierKeyTarget(key))
+    return static_cast<OptionValue>(key);
+  return -1;
+}
+} // namespace
+
 namespace deskflow::server {
 //
 // Config
@@ -88,35 +122,23 @@ bool Config::addComputer(const std::string &name)
   }
   addOption(name, kOptionComputerSwitchCorners, cornerValue);
 
-  auto altModifier = Settings::value(Settings::Computer::ModifierAlt.arg(computer)).toString();
-  if (altModifier.isEmpty())
-    altModifier = kModifierNameAlt;
-  addOption(name, kOptionModifierMapForAlt, modifierIDValueFromString(altModifier));
-
-  auto altgrModifier = Settings::value(Settings::Computer::ModifierAltGr.arg(computer)).toString();
-  if (altgrModifier.isEmpty())
-    altgrModifier = kModifierNameAltGr;
-  addOption(name, kOptionModifierMapForAltGr, modifierIDValueFromString(altgrModifier));
-
-  auto ctrlModifier = Settings::value(Settings::Computer::ModifierCtrl.arg(computer)).toString();
-  if (ctrlModifier.isEmpty())
-    ctrlModifier = kModifierNameCtrl;
-  addOption(name, kOptionModifierMapForControl, modifierIDValueFromString(ctrlModifier));
-
-  auto metaModifier = Settings::value(Settings::Computer::ModifierMeta.arg(computer)).toString();
-  if (metaModifier.isEmpty())
-    metaModifier = kModifierNameMeta;
-  addOption(name, kOptionModifierMapForMeta, modifierIDValueFromString(metaModifier));
-
-  auto shiftModifier = Settings::value(Settings::Computer::ModifierShift.arg(computer)).toString();
-  if (shiftModifier.isEmpty())
-    shiftModifier = kModifierNameShift;
-  addOption(name, kOptionModifierMapForShift, modifierIDValueFromString(shiftModifier));
-
-  auto superModifier = Settings::value(Settings::Computer::ModifierSuper.arg(computer)).toString();
-  if (superModifier.isEmpty())
-    superModifier = kModifierNameSuper;
-  addOption(name, kOptionModifierMapForSuper, modifierIDValueFromString(superModifier));
+  for (const auto &option : modifierOptions) {
+    const auto target = Settings::value(option.setting.arg(computer)).toString();
+    if (target.isEmpty()) {
+      // Missing side options inherit the common mapping on the client.
+      // Common options retain their upstream identity defaults.
+      const auto identity = modifierIDValueFromString(QString::fromLatin1(option.name));
+      if (identity != -1)
+        addOption(name, option.id, identity);
+      continue;
+    }
+    const auto value = modifierTargetProtocolValue(target);
+    if (value == -1) {
+      qWarning() << "Invalid modifier target" << target << "for" << computer << option.name;
+      continue;
+    }
+    addOption(name, option.id, value);
+  }
 
   return true;
 }
@@ -629,15 +651,40 @@ void Config::readSectionOptions(ConfigReadContext &s)
 
 void Config::readSectionScreens(ConfigReadContext &s)
 {
-  qWarning(
-  ) << "Your server config has a screen section. Screens have moved to the general config this section will not be "
-       "parsed.";
+  qWarning() << "Legacy screens section: only computer names and modifier mappings are read. "
+                "Other computer options use the general config.";
   std::string line;
   std::string screen;
   while (s.readLine(line)) {
-    // check for end of section
-    if (line == "end") {
+    if (line == "end")
       return;
+    if (line.back() == ':') {
+      screen = line.substr(0, line.size() - 1);
+      if (!isValidComputerName(screen))
+        throw ServerConfigReadException(s, "invalid computer name \"%{1}\"", screen);
+      if (!isComputer(screen))
+        addComputer(screen);
+      if (!isCanonicalName(screen))
+        throw ServerConfigReadException(s, "cannot use computer name alias here");
+      continue;
+    }
+
+    const auto text = QString::fromStdString(line);
+    const auto nameEnd = line.find_first_of(" \t=");
+    const auto optionName = QString::fromStdString(line.substr(0, nameEnd));
+    for (const auto &option : modifierOptions) {
+      if (optionName.compare(QString::fromLatin1(option.name), Qt::CaseInsensitive) != 0)
+        continue;
+      if (screen.empty())
+        throw ServerConfigReadException(s, "argument before first computer");
+      const auto equals = text.indexOf('=');
+      if (equals == -1 || !text.mid(optionName.size(), equals - optionName.size()).trimmed().isEmpty())
+        throw ServerConfigReadException(s, "missing =");
+      const auto target = text.mid(equals + 1).trimmed().toStdString();
+      // Override the defaults loaded from general settings, without changing
+      // unrelated screen options or the newer global configuration behavior.
+      m_map.at(screen).m_options.insert_or_assign(option.id, s.parseModifierKey(target));
+      break;
     }
   }
   throw ServerConfigReadException(s, "unexpected end of screens section");
@@ -715,9 +762,9 @@ void Config::readSectionLinks(ConfigReadContext &s)
 
 void Config::readSectionAliases(ConfigReadContext &s)
 {
-  qWarning(
-  ) << "Your server config has an alias section. Alias have moved to the general config this section will no be "
-       "parsed.";
+  qWarning()
+      << "Your server config has an alias section. Alias have moved to the general config this section will no be "
+         "parsed.";
   std::string line;
   while (s.readLine(line)) {
     if (line == "end") {
@@ -1516,6 +1563,14 @@ IPlatformComputer::ButtonInfo ConfigReadContext::parseMouse(const std::string &m
   }
 
   return IPlatformComputer::ButtonInfo{button, mask};
+}
+
+OptionValue ConfigReadContext::parseModifierKey(const std::string &target) const
+{
+  const auto value = modifierTargetProtocolValue(QString::fromStdString(target));
+  if (value == -1)
+    throw ServerConfigReadException(*this, "invalid modifier target \"%{1}\"", target);
+  return value;
 }
 
 KeyModifierMask ConfigReadContext::parseModifier(const std::string &modifiers) const

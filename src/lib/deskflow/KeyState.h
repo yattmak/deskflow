@@ -43,6 +43,10 @@ public:
   virtual void sendKeyEvent(
       void *target, bool press, bool isAutoRepeat, KeyID key, KeyModifierMask mask, int32_t count, KeyButton button
   );
+  void sendKeyEvent(
+      void *target, bool press, bool isAutoRepeat, KeyID key, KeyModifierMask mask, int32_t count, KeyButton button,
+      const std::string &language
+  );
 
   //@}
   //! @name accessors

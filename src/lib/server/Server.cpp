@@ -34,6 +34,11 @@
 #include <cstring>
 #include <ctime>
 
+#if defined(__APPLE__)
+#include <QJsonDocument>
+#include <QJsonObject>
+#endif
+
 using namespace deskflow::server;
 
 //
@@ -148,6 +153,10 @@ Server::Server(ServerConfig &config, PrimaryClient *primaryClient, deskflow::Com
     LOG_INFO("default computer lock is on, locking cursor to computer");
     m_lockedToComputer = true;
   }
+
+#if defined(__APPLE__)
+  startSecureInputMonitoring();
+#endif
 }
 
 Server::~Server()
@@ -167,6 +176,9 @@ Server::~Server()
   m_events->removeHandler(PrimaryComputerFakeInputBegin, m_inputFilter);
   m_events->removeHandler(PrimaryComputerFakeInputEnd, m_inputFilter);
   m_events->removeHandler(Timer, this);
+#if defined(__APPLE__)
+  stopSecureInputMonitoring();
+#endif
   stopSwitch();
 
   try {
@@ -242,6 +254,62 @@ bool Server::setConfig(const ServerConfig &config)
   return true;
 }
 
+#if defined(__APPLE__)
+void Server::startSecureInputMonitoring()
+{
+  if (m_secureInputTimer != nullptr) {
+    return;
+  }
+
+  m_secureInputTimer = m_events->newTimer(2.0, nullptr);
+  m_events->addHandler(EventTypes::Timer, m_secureInputTimer, [this](const auto &) { checkSecureInput(); });
+  checkSecureInput();
+}
+
+void Server::stopSecureInputMonitoring()
+{
+  if (m_secureInputTimer == nullptr) {
+    return;
+  }
+
+  m_events->removeHandler(EventTypes::Timer, m_secureInputTimer);
+  m_events->deleteTimer(m_secureInputTimer);
+  m_secureInputTimer = nullptr;
+  m_secureInputApp.clear();
+  sendSecureInputStatus();
+}
+
+void Server::checkSecureInput()
+{
+  const auto app = m_primaryClient->getSecureInputApp();
+  if (app != m_secureInputApp) {
+    if (!app.empty()) {
+      LOG_WARN("secure input active: application \"%s\" is blocking keyboard capture", app.c_str());
+      m_primaryClient->secureInputNotification(app);
+      if (m_active != m_primaryClient) {
+        m_active->secureInputNotification(app);
+      }
+    } else {
+      LOG_INFO("secure input inactive: keyboard capture restored");
+    }
+    m_secureInputApp = app;
+  }
+
+  // Replay the snapshot each poll so a late log tail or a lost record can recover without a state change.
+  sendSecureInputStatus();
+}
+
+void Server::sendSecureInputStatus() const
+{
+  const QJsonObject status{
+      {QStringLiteral("active"), !m_secureInputApp.empty()},
+      {QStringLiteral("app"), QString::fromStdString(m_secureInputApp)}
+  };
+  // GUI state must survive log filtering (including recovery at WARN). Keep app names on one escaped line.
+  LOG_PRINT("secure input status: %s", QJsonDocument(status).toJson(QJsonDocument::Compact).constData());
+}
+#endif
+
 void Server::adoptClient(BaseClientProxy *client)
 {
   assert(client != nullptr);
@@ -270,6 +338,15 @@ void Server::adoptClient(BaseClientProxy *client)
   ipcSendConnectionState(deskflow::core::ConnectionState::Connected);
   sendConnectedClientsIpc();
 
+#if defined(__APPLE__)
+  if (m_secureInputTimer == nullptr) {
+    // disconnect() also serves force-reconnect requests, which keep this Server alive.
+    startSecureInputMonitoring();
+  } else {
+    checkSecureInput();
+  }
+#endif
+
   // send configuration options to client
   sendOptions(client);
 
@@ -285,6 +362,10 @@ void Server::adoptClient(BaseClientProxy *client)
 
 void Server::disconnect()
 {
+#if defined(__APPLE__)
+  stopSecureInputMonitoring();
+#endif
+
   // close all secondary clients
   if (m_clients.size() > 1 || !m_oldClients.empty()) {
     Config emptyConfig(m_events);
@@ -1226,7 +1307,7 @@ void Server::handleClipboardChanged(const Event &event, BaseClientProxy *client)
 void Server::handleKeyDownEvent(const Event &event)
 {
   const auto *info = static_cast<IPlatformComputer::KeyInfo *>(event.getData());
-  auto lang = AppUtil::instance().getCurrentLanguageCode();
+  const auto lang = info->m_language.empty() ? AppUtil::instance().getCurrentLanguageCode() : info->m_language;
   onKeyDown(info->m_key, info->m_mask, info->m_button, lang, info->m_computers.c_str());
 }
 
@@ -1239,7 +1320,7 @@ void Server::handleKeyUpEvent(const Event &event)
 void Server::handleKeyRepeatEvent(const Event &event)
 {
   const auto *info = static_cast<IPlatformComputer::KeyInfo *>(event.getData());
-  auto lang = AppUtil::instance().getCurrentLanguageCode();
+  const auto lang = info->m_language.empty() ? AppUtil::instance().getCurrentLanguageCode() : info->m_language;
   onKeyRepeat(info->m_key, info->m_mask, info->m_count, info->m_button, lang);
 }
 

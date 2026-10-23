@@ -134,8 +134,12 @@ public:
     inline static const auto ModifierAltGr = QStringLiteral("computer_%1/modifierAltGr");
     inline static const auto ModifierCtrl = QStringLiteral("computer_%1/modifierCtrl");
     inline static const auto ModifierMeta = QStringLiteral("computer_%1/modifierMeta");
+    inline static const auto ModifierMetaLeft = QStringLiteral("computer_%1/modifierMetaLeft");
+    inline static const auto ModifierMetaRight = QStringLiteral("computer_%1/modifierMetaRight");
     inline static const auto ModifierShift = QStringLiteral("computer_%1/modifierShift");
     inline static const auto ModifierSuper = QStringLiteral("computer_%1/modifierSuper");
+    inline static const auto ModifierSuperLeft = QStringLiteral("computer_%1/modifierSuperLeft");
+    inline static const auto ModifierSuperRight = QStringLiteral("computer_%1/modifierSuperRight");
     inline static const auto SwitchCornerSize = QStringLiteral("computer_%1/switchCornerSize");
     inline static const auto SwitchCornerTopLeft = QStringLiteral("computer_%1/switchCornerTopLeft");
     inline static const auto SwitchCornerTopRight = QStringLiteral("computer_%1/switchCornerTopRight");

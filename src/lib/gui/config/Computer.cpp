@@ -8,6 +8,7 @@
 
 #include "Computer.h"
 #include "config/ComputerConfig.h"
+#include "deskflow/KeyMap.h"
 #include <common/Settings.h>
 
 using enum KeyboardModifier;
@@ -19,6 +20,25 @@ Computer::Computer(const QString &name)
   setName(name);
 }
 
+int Computer::modifierTargetFromOption(const QString &option)
+{
+  const auto modifier = keyboardModifierFromString(option);
+  if (modifier != DefaultMod)
+    return static_cast<int>(modifier);
+  KeyID key = kKeyNone;
+  if (deskflow::KeyMap::parseKey(option.toStdString(), key) && key > static_cast<KeyID>(Hanja) &&
+      !isUnsupportedModifierKeyTarget(key))
+    return static_cast<int>(key);
+  return static_cast<int>(DefaultMod);
+}
+
+QString Computer::modifierTargetToOption(int target)
+{
+  if (target >= static_cast<int>(DefaultMod) && target <= static_cast<int>(Hanja))
+    return valueToKeyboardModifierOption(target);
+  return QString::fromStdString(deskflow::KeyMap::formatKey(static_cast<KeyID>(target), 0));
+}
+
 void Computer::loadSettings(QSettingsProxy &settings)
 {
   const auto name = settings.value("name").toString();
@@ -27,12 +47,29 @@ void Computer::loadSettings(QSettingsProxy &settings)
   if (name.isEmpty())
     return;
 
-  setModifier(Alt, modifierValueFromString(Settings::value(Settings::Computer::ModifierAlt.arg(name)).toString()));
-  setModifier(AltGr, modifierValueFromString(Settings::value(Settings::Computer::ModifierAltGr.arg(name)).toString()));
-  setModifier(Ctrl, modifierValueFromString(Settings::value(Settings::Computer::ModifierCtrl.arg(name)).toString()));
-  setModifier(Meta, modifierValueFromString(Settings::value(Settings::Computer::ModifierMeta.arg(name)).toString()));
-  setModifier(Shift, modifierValueFromString(Settings::value(Settings::Computer::ModifierShift.arg(name)).toString()));
-  setModifier(Super, modifierValueFromString(Settings::value(Settings::Computer::ModifierSuper.arg(name)).toString()));
+  setModifier(Alt, modifierTargetFromOption(Settings::value(Settings::Computer::ModifierAlt.arg(name)).toString()));
+  setModifier(AltGr, modifierTargetFromOption(Settings::value(Settings::Computer::ModifierAltGr.arg(name)).toString()));
+  setModifier(Ctrl, modifierTargetFromOption(Settings::value(Settings::Computer::ModifierCtrl.arg(name)).toString()));
+  setModifier(Meta, modifierTargetFromOption(Settings::value(Settings::Computer::ModifierMeta.arg(name)).toString()));
+  setModifier(Shift, modifierTargetFromOption(Settings::value(Settings::Computer::ModifierShift.arg(name)).toString()));
+  setModifier(Super, modifierTargetFromOption(Settings::value(Settings::Computer::ModifierSuper.arg(name)).toString()));
+
+  setSideModifier(
+      KeyboardModifierSide::MetaLeft,
+      modifierTargetFromOption(Settings::value(Settings::Computer::ModifierMetaLeft.arg(name)).toString())
+  );
+  setSideModifier(
+      KeyboardModifierSide::MetaRight,
+      modifierTargetFromOption(Settings::value(Settings::Computer::ModifierMetaRight.arg(name)).toString())
+  );
+  setSideModifier(
+      KeyboardModifierSide::SuperLeft,
+      modifierTargetFromOption(Settings::value(Settings::Computer::ModifierSuperLeft.arg(name)).toString())
+  );
+  setSideModifier(
+      KeyboardModifierSide::SuperRight,
+      modifierTargetFromOption(Settings::value(Settings::Computer::ModifierSuperRight.arg(name)).toString())
+  );
 
   setSwitchCornerSize(Settings::value(Settings::Computer::SwitchCornerSize.arg(name)).toInt());
 
@@ -83,27 +120,43 @@ void Computer::saveSettings(QSettingsProxy &settings) const
 
   Settings::setValue(
       Settings::Computer::ModifierAlt.arg(computerName),
-      valueToKeyboardModifierOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Alt)))
+      modifierTargetToOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Alt)))
   );
   Settings::setValue(
       Settings::Computer::ModifierAltGr.arg(computerName),
-      valueToKeyboardModifierOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::AltGr)))
+      modifierTargetToOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::AltGr)))
   );
   Settings::setValue(
       Settings::Computer::ModifierCtrl.arg(computerName),
-      valueToKeyboardModifierOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Ctrl)))
+      modifierTargetToOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Ctrl)))
   );
   Settings::setValue(
       Settings::Computer::ModifierMeta.arg(computerName),
-      valueToKeyboardModifierOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Meta)))
+      modifierTargetToOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Meta)))
   );
   Settings::setValue(
       Settings::Computer::ModifierShift.arg(computerName),
-      valueToKeyboardModifierOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Shift)))
+      modifierTargetToOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Shift)))
   );
   Settings::setValue(
       Settings::Computer::ModifierSuper.arg(computerName),
-      valueToKeyboardModifierOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Super)))
+      modifierTargetToOption(m_Modifiers.at(static_cast<qsizetype>(KeyboardModifier::Super)))
+  );
+  Settings::setValue(
+      Settings::Computer::ModifierMetaLeft.arg(computerName),
+      modifierTargetToOption(sideModifierOverride(KeyboardModifierSide::MetaLeft))
+  );
+  Settings::setValue(
+      Settings::Computer::ModifierMetaRight.arg(computerName),
+      modifierTargetToOption(sideModifierOverride(KeyboardModifierSide::MetaRight))
+  );
+  Settings::setValue(
+      Settings::Computer::ModifierSuperLeft.arg(computerName),
+      modifierTargetToOption(sideModifierOverride(KeyboardModifierSide::SuperLeft))
+  );
+  Settings::setValue(
+      Settings::Computer::ModifierSuperRight.arg(computerName),
+      modifierTargetToOption(sideModifierOverride(KeyboardModifierSide::SuperRight))
   );
 }
 
@@ -115,6 +168,7 @@ QString Computer::screensSection() const
 bool Computer::operator==(const Computer &computer) const
 {
   return m_Name == computer.m_Name && m_Aliases == computer.m_Aliases && m_Modifiers == computer.m_Modifiers &&
-         m_SwitchCorners == computer.m_SwitchCorners && m_SwitchCornerSize == computer.m_SwitchCornerSize &&
-         m_Fixes == computer.m_Fixes && m_Swapped == computer.m_Swapped && m_isServer == computer.m_isServer;
+         m_SideModifiers == computer.m_SideModifiers && m_SwitchCorners == computer.m_SwitchCorners &&
+         m_SwitchCornerSize == computer.m_SwitchCornerSize && m_Fixes == computer.m_Fixes &&
+         m_Swapped == computer.m_Swapped && m_isServer == computer.m_isServer;
 }

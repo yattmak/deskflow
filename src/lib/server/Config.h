@@ -446,6 +446,7 @@ public:
   parseKeystroke(const std::string &keystroke, const std::set<std::string> &computers) const;
   IPlatformComputer::ButtonInfo parseMouse(const std::string &mouse) const;
   KeyModifierMask parseModifier(const std::string &modifiers) const;
+  OptionValue parseModifierKey(const std::string &target) const;
   std::istream &getStream() const
   {
     return m_stream;
